@@ -1,0 +1,17 @@
+{
+  "name": "svml-zimu-bot",
+  "version": "0.1.0",
+  "description": "SVML事務bot.",
+  "author": "RedStar HR <redstar.hoshir@gmail.com>",
+  "license": "MIT",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.0.0",
+    "@google-cloud/storage": "^6.8.0",
+    "dotenv": "^16.0.0",
+    "luxon": "^3.4.0"
+  }
+}
