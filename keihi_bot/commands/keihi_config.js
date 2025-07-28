@@ -8,9 +8,9 @@ const {
   ComponentType
 } = require('discord.js');
 
-const { setApproverRoles, setVisibleRoles } = require('../utils/fileStorage.js');
+const { setApproverRoles, setVisibleRoles } = require('../../keihi_bot/utils/fileStorage.js');
 
-const MESSAGES = require('../constants/messages.js');
+const MESSAGES = require('../../keihi_bot/constants/messages.js');
 
 module.exports = {
   data: new SlashCommandBuilder()

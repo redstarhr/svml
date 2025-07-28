@@ -1,3 +1,5 @@
+// utils/salesReportSubmitHandler.js
+
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { normalizeDate } = require('../../uriage_bot/utils/date'); // パスは後で整理
 const { saveJsonToGCS, copyGCSFile, readJsonFromGCS } = require('../../uriage_bot/utils/gcs'); // パスは後で整理

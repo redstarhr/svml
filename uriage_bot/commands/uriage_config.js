@@ -7,7 +7,7 @@ const {
     PermissionFlagsBits,
     EmbedBuilder,
 } = require('discord.js');
-const { readJsonFromGCS, saveJsonToGCS } = require('../utils/gcs');
+const { readJsonFromGCS, saveJsonToGCS } = require('../../uriage_bot/utils/gcs');
 
 const SETTINGS_FILE_PATH = (guildId) => `data/${guildId}/${guildId}.json`;
 

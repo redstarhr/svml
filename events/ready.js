@@ -5,7 +5,7 @@ const path = require('path');
 
 // hikkake_botのユーティリティ関数を読み込みます。
 // __dirname (eventsフォルダ) から一つ上の階層に移動してファイルを探します。
-const { startLogCleanupInterval } = require(path.join(__dirname, '..', 'hikkake_bot', 'utils', 'hikkakePanelManager.js'));
+const { startLogCleanupInterval } = require(path.join(__dirname, '..', 'utils', 'hikkakePanelManager.js'));
 
 /**
  * Google Cloud Storageへの接続を確認します。
@@ -30,8 +30,14 @@ async function checkGcsConnection() {
   } catch (error) {
     console.error(`❌ GCSバケット「${bucketName}」への接続に失敗しました。`);
     console.error('   エラー詳細:', error.message);
-    console.error('   ヒント: GOOGLE_APPLICATION_CREDENTIALS環境変数が正しく設定されているか、');
-    console.error('   サービスアカウントに適切な権限(例: ストレージ閲覧者)が付与されているか確認してください。');
+    // Cloud Runで実行されているかどうかに応じて、ヒントを出し分ける
+    if (process.env.K_SERVICE) {
+      console.error('   ヒント (Cloud Run): Cloud Runサービスに紐付けられたサービスアカウントに、');
+      console.error(`   GCSバケット「${bucketName}」へのアクセス権限（例: ストレージオブジェクト管理者）が付与されているか確認してください。`);
+    } else {
+      console.error('   ヒント (ローカル環境): GOOGLE_APPLICATION_CREDENTIALS環境変数が正しく設定されているか、');
+      console.error('   サービスアカウントキーに適切な権限が付与されているか確認してください。');
+    }
   }
 }
 

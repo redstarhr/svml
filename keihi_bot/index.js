@@ -9,10 +9,10 @@
  */
 
 // --- コマンド ---
-const keihiConfig = require('./commands/keihi_config.js');
-const keihiEmbed = require('./commands/keihi_embed.js');
-const keihiRireki = require('./commands/keihi_rireki.js');
-const keihiSetti = require('./commands/keihi_setti.js');
+const keihiConfig = require('../commands/keihi/keihi_config.js');
+const keihiEmbed = require('../commands/keihi/keihi_embed.js');
+const keihiRireki = require('../commands/keihi/keihi_rireki.js');
+const keihiSetti = require('../commands/keihi/keihi_setti.js');
 
 // --- イベントハンドラ ---
 const interactionCreateHandler = require('./events/interactionCreate.js');

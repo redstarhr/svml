@@ -5,7 +5,7 @@ const {
   StringSelectMenuOptionBuilder,
   ActionRowBuilder
 } = require('discord.js');
-const { getAvailableExpenseFiles } = require('../utils/fileStorage.js');
+const { getAvailableExpenseFiles } = require('../../keihi_bot/utils/fileStorage.js');
 
 module.exports = {
   data: new SlashCommandBuilder()

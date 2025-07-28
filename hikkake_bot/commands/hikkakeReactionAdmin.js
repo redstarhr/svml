@@ -1,7 +1,7 @@
 // hikkake_bot/commands/hikkakeReactionAdmin.js
 
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } = require('discord.js');
-const { readReactions } = require('../utils/hikkakeReactionManager');
+const { readReactions } = require('../../hikkake_bot/utils/hikkakeReactionManager');
 
 module.exports = {
   data: new SlashCommandBuilder()

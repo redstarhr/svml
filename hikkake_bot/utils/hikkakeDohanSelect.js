@@ -13,8 +13,8 @@ module.exports = {
     const type = match[2];
 
     if (step === '1_user') {
-      // Step 1: User selected, now ask for guest count
       await interaction.deferUpdate();
+      // Step 1: User selected, now ask for guest count
       const selectedUserId = interaction.values[0];
       const newCustomId = `hikkake_douhan_step2_guests_${type}_${selectedUserId}`;
       const row = createSelectMenuRow(newCustomId, '客数を選択 (0-24)', createNumericOptions(25, '人', 0));

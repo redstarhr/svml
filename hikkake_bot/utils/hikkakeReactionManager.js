@@ -1,11 +1,8 @@
 // hikkake_bot/utils/hikkakeReactionManager.js
 
-const { Storage } = require('@google-cloud/storage');
+const { readJsonFromGCS, saveJsonToGCS } = require('./gcs');
 
-const bucketName = 'data-svml';
 const basePath = 'hikkake';
-
-const storage = new Storage();
 
 /**
  * GCS 上のファイルパスを生成（例: hikkake/<GUILD_ID>/reactions.json）
@@ -34,19 +31,13 @@ function getDefaultReactions() {
  * @returns {Promise<object>}
  */
 async function readReactions(guildId) {
-  const file = storage.bucket(bucketName).file(getReactionFilePath(guildId));
-  try {
-    const [contents] = await file.download();
-    return JSON.parse(contents.toString());
-  } catch (e) {
-    // ファイルが存在しないエラー(404)は初回起動時の正常な動作なので、それ以外を警告として扱う
-    if (e.code !== 404) {
-      console.warn(`[GCS] reaction読み込み失敗: ${getReactionFilePath(guildId)} - ${e.message}`);
-    } else {
-      console.log(`[GCS] 初期reactionファイル作成: ${getReactionFilePath(guildId)}`);
-    }
+  const filePath = getReactionFilePath(guildId);
+  const reactions = await readJsonFromGCS(filePath);
+  if (reactions === null) {
+    console.log(`[GCS] 初期reactionファイル作成: ${filePath}`);
     return getDefaultReactions();
   }
+  return reactions;
 }
 
 /**
@@ -56,8 +47,7 @@ async function readReactions(guildId) {
  * @returns {Promise<void>}
  */
 async function writeReactions(guildId, reactionsData) {
-  const file = storage.bucket(bucketName).file(getReactionFilePath(guildId));
-  await file.save(JSON.stringify(reactionsData, null, 2));
+  await saveJsonToGCS(getReactionFilePath(guildId), reactionsData);
 }
 
 /**

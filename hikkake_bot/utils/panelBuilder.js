@@ -40,11 +40,11 @@ function buildPanelEmbed(panelType, hikkakeType, state, guildId) {
     const descriptionLines = orderedTypes.map(type => {
       const staff = state.staff?.[type] || { pura: 0, kama: 0 };
       const orders = state.orders?.[type] || [];
-      const allocatedPura = orders // 「ひっかけ」「同伴」「ふらっと来た」で消費されたキャストを計算
-        .filter(order => order.type === 'order' || order.type === 'douhan' || order.type === 'casual_arrival')
+      const allocatedPura = orders
+        .filter(order => !order.leaveTimestamp && (order.type === 'order' || order.type === 'douhan' || order.type === 'casual_arrival'))
         .reduce((sum, order) => sum + (order.castPura || 0), 0);
-      const allocatedKama = orders // 「ひっかけ」「同伴」「ふらっと来た」で消費されたキャストを計算
-        .filter(order => order.type === 'order' || order.type === 'douhan' || order.type === 'casual_arrival')
+      const allocatedKama = orders
+        .filter(order => !order.leaveTimestamp && (order.type === 'order' || order.type === 'douhan' || order.type === 'casual_arrival'))
         .reduce((sum, order) => sum + (order.castKama || 0), 0);
       const availablePura = (staff.pura || 0) - allocatedPura;
       const availableKama = (staff.kama || 0) - allocatedKama;
@@ -77,11 +77,6 @@ function buildPanelEmbed(panelType, hikkakeType, state, guildId) {
       embed.setDescription('現在、受注はありません。');
     } else {
       const description = orders.map(order => {
-        // Handle confirmed hikkake separately for its unique format
-        if (order.type === 'order' && order.status === 'confirmed') {
-          return '🐟 【ひっかけ確定】';
-        }
-
         const typeLabelMap = {
           order: order.status === 'failed' ? 'ひっかけ失敗' : (order.status === 'confirmed' ? 'ひっかけ確定' : 'ひっかけ予定'),
           douhan: '同伴',
@@ -109,8 +104,9 @@ function buildPanelEmbed(panelType, hikkakeType, state, guildId) {
             if (durationMins > 0) durationLabel += `${durationMins}分`;
             parts = [`🍣【${typeLabel}】同伴キャスト: <@${castUserId}>`, `客数: ${order.people}人`, `同伴時間: ${durationLabel}`, `来店予定時間: ${arrivalTime}`];
           } else if (order.type === 'order') {
-            // Confirmed is handled above, so only pending and failed are left.
-            if (order.status === 'pending') {
+            if (order.status === 'confirmed') {
+              parts = ['🐟 【ひっかけ確定】'];
+            } else if (order.status === 'pending') {
               parts = [
                 `🎣【${typeLabel}】`,
                 `客数: ${order.people}人`,
@@ -129,7 +125,11 @@ function buildPanelEmbed(panelType, hikkakeType, state, guildId) {
         let meta;
         if (order.type === 'douhan') {
           meta = `入力時間：${timestamp} ${userMention}`;
+        } else if (order.type === 'order' && order.status === 'confirmed') {
+          // 確定ログはシンプルにメンションのみ
+          meta = userMention;
         } else {
+          // それ以外のログ（ひっかけ予定、失敗など）もメンションを表示
           meta = userMention;
         }
 

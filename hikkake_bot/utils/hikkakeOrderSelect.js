@@ -65,10 +65,10 @@ module.exports = {
 
         // 利用可能なスタッフ数を計算
         const allocatedPura = state.orders[type]
-            .filter(order => order.type === 'order' || order.type === 'douhan' || order.type === 'casual_arrival')
+            .filter(order => !order.leaveTimestamp && (order.type === 'order' || order.type === 'douhan' || order.type === 'casual_arrival'))
             .reduce((sum, order) => sum + (order.castPura || 0), 0);
         const allocatedKama = state.orders[type]
-            .filter(order => order.type === 'order' || order.type === 'douhan' || order.type === 'casual_arrival')
+            .filter(order => !order.leaveTimestamp && (order.type === 'order' || order.type === 'douhan' || order.type === 'casual_arrival'))
             .reduce((sum, order) => sum + (order.castKama || 0), 0);
         const availablePura = (state.staff[type].pura || 0) - allocatedPura;
         const availableKama = (state.staff[type].kama || 0) - allocatedKama;

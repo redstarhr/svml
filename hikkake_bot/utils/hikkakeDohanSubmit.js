@@ -17,20 +17,28 @@ module.exports = {
     const guildId = interaction.guildId;
     const state = await readState(guildId);
 
-    // In this new flow, we assume 1 cast member is consumed.
-    // You might want to adjust this if a "dohan" can involve more staff.
-    const castPura = 1; // Assuming the selected cast is 'pura'
-    const castKama = 0;
+    // 「同伴」ではキャストが1人消費されると仮定し、プラ・カマのどちらか空いている方を割り当てる
+    let castPura = 0;
+    let castKama = 0;
 
     // Check for available staff
     const allocatedPura = state.orders[type]
-      .filter(order => order.type === 'order' || order.type === 'douhan' || order.type === 'casual_arrival')
+      .filter(order => !order.leaveTimestamp && (order.type === 'order' || order.type === 'douhan' || order.type === 'casual_arrival'))
       .reduce((sum, order) => sum + (order.castPura || 0), 0);
-    const availablePura = (state.staff[type].pura || 0) - allocatedPura;
+    const allocatedKama = state.orders[type]
+      .filter(order => !order.leaveTimestamp && (order.type === 'order' || order.type === 'douhan' || order.type === 'casual_arrival'))
+      .reduce((sum, order) => sum + (order.castKama || 0), 0);
 
-    if (castPura > availablePura) {
+    const availablePura = (state.staff[type].pura || 0) - allocatedPura;
+    const availableKama = (state.staff[type].kama || 0) - allocatedKama;
+
+    if (availablePura >= 1) {
+      castPura = 1;
+    } else if (availableKama >= 1) {
+      castKama = 1;
+    } else {
       return interaction.editReply({
-        content: `❌ スタッフが不足しています。\n現在利用可能 - プラ: ${availablePura}人`,
+        content: `❌ 同伴に出せるスタッフがいません。\n現在利用可能 - プラ: ${availablePura}人, カマ: ${availableKama}人`,
       });
     }
 

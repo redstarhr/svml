@@ -1,12 +1,9 @@
 // hikkake_bot/utils/hikkakeStateManager.js
 
-const { Storage } = require('@google-cloud/storage');
+const { readJsonFromGCS, saveJsonToGCS } = require('../../utils/gcs');
 const path = require('path');
 
-const bucketName = 'data-svml'; // 固定
 const basePath = 'hikkake';     // フォルダ構成: hikkake/<GUILD_ID>/state.json
-
-const storage = new Storage();
 
 function getFilePath(guildId) {
   return `${basePath}/${guildId}/state.json`;
@@ -77,25 +74,25 @@ function ensureStateStructure(state) {
 }
 
 async function readState(guildId) {
-  const file = storage.bucket(bucketName).file(getFilePath(guildId));
+  const filePath = getFilePath(guildId);
   try {
-    const [contents] = await file.download();
-    const rawState = JSON.parse(contents.toString());
+    const rawState = await readJsonFromGCS(filePath);
+    if (rawState === null) {
+      console.log(`[GCS] 初期state作成: ${filePath}`);
+      return getDefaultState();
+    }
     return ensureStateStructure(rawState);
   } catch (e) {
-    // ファイルが存在しないエラー(404)は初回起動時の正常な動作なので、それ以外を警告として扱う
-    if (e.code !== 404) {
-      console.warn(`[GCS] state読み込み失敗: ${getFilePath(guildId)} - ${e.message}`);
-    } else {
-      console.log(`[GCS] 初期state作成: ${getFilePath(guildId)}`);
-    }
+    // readJsonFromGCSがnull以外のエラーをスローした場合
+    console.warn(`[GCS] state読み込みで予期せぬエラー: ${filePath} - ${e.message}`);
+    // 念のためデフォルトステートを返す
     return getDefaultState();
   }
 }
 
 async function writeState(guildId, stateData) {
-  const file = storage.bucket(bucketName).file(getFilePath(guildId));
-  await file.save(JSON.stringify(stateData, null, 2));
+  const filePath = getFilePath(guildId);
+  await saveJsonToGCS(filePath, stateData);
 }
 
 module.exports = {

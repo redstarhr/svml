@@ -29,7 +29,7 @@ module.exports = {
 
       const deletedMessage = targetArray.splice(index, 1)[0];
 
-      // If the array is now empty, remove the key
+      // 配列が空になった場合はキーを削除
       if (targetArray.length === 0) {
         delete reactions[type][key][value];
         if (Object.keys(reactions[type][key]).length === 0) {
@@ -40,7 +40,7 @@ module.exports = {
       await writeReactions(guildId, reactions);
 
       await interaction.followUp({ content: `✅ 反応文「${deletedMessage}」を削除しました。`, flags: 64 });
-      // Note: For simplicity, this doesn't auto-update the original message. The user can re-run the command to see the updated list.
+      // リアクションの更新が必要な場合はここで行う
     } catch (error) {
       console.error('[hikkakeReactionDeleteSelect] リアクション削除エラー:', error);
       await interaction.followUp({ content: 'エラーが発生し、反応文を削除できませんでした。', flags: 64 });

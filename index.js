@@ -1,10 +1,11 @@
 // index.js
 
 require('dotenv').config();
-const fs = require('fs');
+const fs = require('node:fs');
 const path = require('path');
 const { Collection, Events } = require('discord.js');
 const { client } = require('./client');
+const { startLogCleanupInterval } = require('./hikkake_bot/utils/hikkakePanelManager.js');
 
 // --- 必須環境変数チェック ---
 const requiredEnv = ['DISCORD_TOKEN', 'CLIENT_ID', 'GUILD_ID'];
@@ -17,124 +18,122 @@ for (const envVar of requiredEnv) {
 
 console.log('Google Credentials Path:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
 
-client.commands = new Collection();
-
-// --- コマンドファイルを再帰的に読み込む関数 ---
-function loadCommandFiles(dir) {
-  const commandFiles = [];
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
-
-  for (const entry of entries) {
-    const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      commandFiles.push(...loadCommandFiles(fullPath));
-    } else if (entry.isFile() && entry.name.endsWith('.js')) {
-      commandFiles.push(fullPath);
+/**
+ * 指定されたディレクトリから再帰的に .js ファイルを探索します。
+ * @param {string} dir - 探索を開始するディレクトリ
+ * @returns {string[]} 見つかったファイルのフルパスの配列
+ */
+function getJsFiles(dir) {
+  const files = [];
+  try {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        files.push(...getJsFiles(fullPath));
+      } else if (entry.isFile() && entry.name.endsWith('.js')) {
+        files.push(fullPath);
+      }
+    }
+  } catch (error) {
+    // ディレクトリが存在しない場合は無視
+    if (error.code !== 'ENOENT') {
+      console.error(`ディレクトリの読み込みに失敗: ${dir}`, error);
     }
   }
-  return commandFiles;
+  return files;
 }
 
-// --- コマンド読み込みディレクトリ ---
+// --- コマンドハンドラの読み込み ---
+client.commands = new Collection();
 const commandDirs = [
-  path.join(__dirname, 'commands'),
   path.join(__dirname, 'uriage_bot', 'commands'),
   path.join(__dirname, 'hikkake_bot', 'commands'),
+  path.join(__dirname, 'keihi_bot', 'commands'),
 ];
 
 // --- コマンドのロード処理 ---
 for (const dir of commandDirs) {
-  if (!fs.existsSync(dir)) continue;
-  const commandFiles = loadCommandFiles(dir);
-
+  const commandFiles = getJsFiles(dir);
   for (const file of commandFiles) {
     try {
       const command = require(file);
       if ('data' in command && 'execute' in command) {
         client.commands.set(command.data.name, command);
       } else {
-        console.warn(`⚠️ 無効なコマンドファイル: ${path.relative(__dirname, file)}`);
+        console.warn(`⚠️  [警告] ${file} のコマンドは 'data' または 'execute' プロパティが不足しています。`);
       }
     } catch (error) {
-      console.error(`❌ コマンドファイル読み込み失敗: ${path.relative(__dirname, file)}`, error);
+      console.error(`❌ コマンドファイルの読み込みに失敗: ${file}`, error);
     }
   }
 }
 console.log(`✅ ${client.commands.size} 個のコマンドを読み込みました。`);
 
-// --- イベントハンドラの読み込み ---
-const eventsPath = path.join(__dirname, 'events');
-const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
+// --- 各Botのインタラクションハンドラを読み込み ---
+const hikkakeButtonHandler = require('./hikkake_bot/utils/hikkake_button_handler.js');
+const hikkakeSelectHandler = require('./hikkake_bot/utils/hikkake_select_handler.js');
+const hikkakeModalHandler = require('./hikkake_bot/utils/hikkake_modal_handler.js');
+const uriageButtonHandler = require('./uriage_bot/utils/uriage_button_handler.js');
+const uriageModalHandler = require('./uriage_bot/utils/uriage_modal_handler.js');
+const uriageConfigHandler = require('./uriage_bot/commands/uriage_config.js');
+// keihi_botのハンドラは、コレクターパターンから移行後にここに追加します。
 
-for (const file of eventFiles) {
-  const filePath = path.join(eventsPath, file);
-  const event = require(filePath);
-  if (event.once) {
-    // `client` を引数として渡す
-    client.once(event.name, (...args) => event.execute(...args, client));
-  } else {
-    // `client` を引数として渡す
-    client.on(event.name, (...args) => event.execute(...args, client));
+// --- Bot起動時の処理 ---
+client.once(Events.ClientReady, c => {
+  console.log('------------------------------------------------------');
+  console.log(`✅ Botの準備が完了しました。`);
+  console.log(`   ログインアカウント: ${c.user.tag}`);
+  console.log(`   接続サーバー数: ${c.guilds.cache.size} サーバー`);
+  if (c.guilds.cache.size > 0) {
+    console.log('   参加サーバー一覧:');
+    c.guilds.cache.forEach(guild => {
+      console.log(`     - ${guild.name} (ID: ${guild.id})`);
+    });
   }
-}
-console.log(`✅ ${eventFiles.length} 個のイベントハンドラを読み込みました。`);
+  console.log('------------------------------------------------------');
 
-// --- モーダル・ボタンハンドラ読み込み ---
-const modalHandler = require(path.join(__dirname, 'uriage_bot', 'utils', 'uriage_modals.js'));
-const buttonHandler = require(path.join(__dirname, 'uriage_bot', 'utils', 'uriage_buttons.js'));
-
-const hikkakeModalHandler = require(path.join(__dirname, 'hikkake_bot', 'utils', 'hikkake_modal_handler.js'));
-const hikkakeButtonHandler = require(path.join(__dirname, 'hikkake_bot', 'utils', 'hikkake_button_handler.js'));
-const hikkakeSelectHandler = require(path.join(__dirname, 'hikkake_bot', 'utils', 'hikkake_select_handler.js'));
+  // ひっかけBotの定期処理を開始
+  startLogCleanupInterval(c);
+});
 
 // --- インタラクション総合ハンドリング ---
-client.on(Events.InteractionCreate, async (interaction) => {
+client.on(Events.InteractionCreate, async interaction => {
   try {
-    // スラッシュコマンド処理
     if (interaction.isChatInputCommand()) {
-      const command = client.commands.get(interaction.commandName);
-      if (!command) return;
+      const command = interaction.client.commands.get(interaction.commandName);
+      if (!command) {
+        console.error(`コマンドが見つかりません: ${interaction.commandName}`);
+        return;
+      }
       await command.execute(interaction);
-      return;
-    }
 
-    // ボタン押下の汎用ハンドラ優先処理
-    if (interaction.isButton()) {
-      if (await buttonHandler.execute(interaction)) return;
-      if (await hikkakeButtonHandler.execute(interaction)) return;
-    }
+    } else if (interaction.isButton()) {
+      if (interaction.customId.startsWith('hikkake_')) await hikkakeButtonHandler.execute(interaction);
+      else if (interaction.customId.startsWith('sales_report')) await uriageButtonHandler.execute(interaction);
+      // 他のBotのボタン処理もここに追加
 
-    // モーダル送信の汎用ハンドラ優先処理
-    if (interaction.isModalSubmit()) {
-      if (await modalHandler.execute(interaction)) return;
-      if (await hikkakeModalHandler.execute(interaction)) return;
-    }
+    } else if (interaction.isAnySelectMenu()) {
+      if (interaction.customId.startsWith('hikkake_')) await hikkakeSelectHandler.execute(interaction);
+      else if (interaction.customId === 'select_approval_roles') await uriageConfigHandler.handleRoleSelectMenu(interaction);
+      // 他のBotのセレクトメニュー処理もここに追加
 
-    // セレクトメニュー処理（hikkake系のものが多いため専用ハンドラも使用）
-    if (interaction.isAnySelectMenu()) {
-      // hikkakeセレクトメニューの汎用処理
-      if (await hikkakeSelectHandler.execute(interaction)) return;
+    } else if (interaction.isModalSubmit()) {
+      if (interaction.customId.startsWith('hikkake_')) await hikkakeModalHandler.execute(interaction);
+      else if (interaction.customId.startsWith('sales_report_modal')) await uriageModalHandler.execute(interaction);
+      // 他のBotのモーダル処理もここに追加
     }
   } catch (error) {
-    console.error('❌ インタラクション処理エラー:', error);
-
-    // If the interaction is unknown (error code 10062), we can't reply to it.
-    // Log the issue and return to prevent a crash.
-    if (error.code === 10062) {
-      console.error('インタラクションの有効期限が切れているため、エラーメッセージを返信できませんでした。');
-      return;
-    }
-
-    const errorMessage = {
-      content: 'コマンド実行中にエラーが発生しました。',
-      flags: 64, // 64 is MessageFlags.Ephemeral
-    };
-
-    if (interaction.replied || interaction.deferred) {
-      // Use catch to prevent unhandled promise rejections if the followup also fails
-      await interaction.followUp(errorMessage).catch(e => console.error('エラーのフォローアップに失敗:', e));
-    } else {
-      await interaction.reply(errorMessage).catch(e => console.error('エラーの返信に失敗:', e));
+    console.error(`❌ インタラクション処理中にエラーが発生しました (ID: ${interaction.customId || interaction.commandName}):`, error);
+    const errorMessage = { content: 'コマンドの実行中にエラーが発生しました。', ephemeral: true };
+    try {
+      if (interaction.replied || interaction.deferred) {
+        await interaction.followUp(errorMessage);
+      } else {
+        await interaction.reply(errorMessage);
+      }
+    } catch (replyError) {
+      console.error('❌ エラーメッセージの返信に失敗しました:', replyError);
     }
   }
 });
