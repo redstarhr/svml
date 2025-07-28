@@ -1,5 +1,5 @@
 // components/buttons/salesReportApproveButtonHandler.js
-const { readJsonFromGCS, saveJsonToGCS } = require('../../utils/gcs');
+const { readJsonFromGCS, saveJsonToGCS } = require('../../../utils/gcs');
 
 module.exports = {
   customId: /^approve_sales_report_(\d{4}-\d{2}-\d{2})_(\d+)$/,

@@ -1,5 +1,5 @@
-const { readState, writeState } = require('../../../utils/hikkakeStateManager');
-const { updateAllHikkakePanels } = require('../../../utils/hikkakePanelManager');
+const { readState, writeState } = require('../../utils/hikkakeStateManager');
+const { updateAllHikkakePanels } = require('../../utils/hikkakePanelManager');
 
 module.exports = {
   customId: /^leave_(quest|tosu|horse)$/,

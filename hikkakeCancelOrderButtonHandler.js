@@ -1,13 +1,9 @@
-const { readState, writeState } = require('../../../utils/hikkakeStateManager');
-const { updateAllHikkakePanels } = require('../../../utils/hikkakePanelManager');
-const { PermissionFlagsBits } = require('discord.js');
+const { readState, writeState } = require('../../utils/hikkakeStateManager');
+const { updateAllHikkakePanels } = require('../../utils/hikkakePanelManager');
 
 module.exports = {
-  customId: /^delete_order_(quest|tosu|horse)_(.+)$/,
+  customId: /^cancel_order_(quest|tosu|horse)_(.+)$/,
   async execute(interaction, client) {
-    if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
-      return interaction.reply({ content: 'この操作を実行する権限がありません。', ephemeral: true });
-    }
     await interaction.deferUpdate();
     const [, type, orderId] = interaction.customId.match(this.customId);
     const guildId = interaction.guildId;
