@@ -1,30 +1,23 @@
-const { readState, writeState } = require('../../../utils/hikkakeStateManager');
-const { updateAllHikkakePanels } = require('../../../utils/hikkakePanelManager');
+const { readState, writeState } = require('../../utils/hikkakeStateManager');
+const { updateAllHikkakePanels } = require('../../utils/hikkakePanelManager');
 
 module.exports = {
-  customId: /^enter_(quest|tosu|horse)$/, // Correct customId for enter
+  customId: /^cancel_order_(quest|tosu|horse)_(.+)$/,
   async execute(interaction, client) {
-    await interaction.deferReply({ ephemeral: true });
-
-    const type = interaction.customId.split('_')[1];
+    await interaction.deferUpdate();
+    const [, type, orderId] = interaction.customId.match(this.customId);
     const guildId = interaction.guildId;
-    const user = interaction.user;
 
     const state = await readState(guildId);
+    const orderIndex = state.orders[type]?.findIndex(o => o.id === orderId);
 
-    if (state.members[type]?.some(member => member.id === user.id)) {
-      return interaction.editReply('すでに入店済みです。');
+    if (orderIndex === -1 || !state.orders[type]) {
+      return;
     }
 
-    state.members[type] = state.members[type] || [];
-    state.members[type].push({
-      id: user.id,
-      name: user.displayName,
-      enterTimestamp: new Date().toISOString(),
-    });
+    state.orders[type].splice(orderIndex, 1);
 
     await writeState(guildId, state);
     await updateAllHikkakePanels(client, guildId, state);
-    await interaction.editReply('入店しました。');
   },
 };

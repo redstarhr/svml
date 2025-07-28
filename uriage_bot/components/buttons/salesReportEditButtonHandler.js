@@ -1,6 +1,6 @@
 // components/buttons/salesReportEditButtonHandler.js
 const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
-const { readJsonFromGCS } = require('../../../utils/gcs'); // Root utils
+const { readJsonFromGCS } = require('../../../utils/gcs');
 
 module.exports = {
   customId: /^edit_sales_report_(\d{4}-\d{2}-\d{2})_(\d+)$/,

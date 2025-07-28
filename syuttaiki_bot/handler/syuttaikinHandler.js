@@ -1,37 +1,61 @@
-const buttonHandlers = [
-  require('./buttons/syussinTimeButton'),
-  require('./buttons/taikinTimeButton'),
-  // 他のボタンもここに
-];
+// handlers/syuttaikinHandler.js
 
-const selectHandlers = [
-  require('./selects/syussinUserSelect'),
-  require('./selects/taikinUserSelect'),
-  require('./selects/notifyChannelSelect'),
-  // 他のセレクトもここに
-];
+const arrivalTimeButton = require('../components/buttons/arrivalTimeButton');
+const departureTimeButton = require('../components/buttons/departureTimeButton');
+const arrivalTimeDeleteButton = require('../components/buttons/arrival_time_delete_button');
+const roleSelectButton = require('../components/buttons/roleSelectButton');
 
-const modalHandlers = [
-  require('./modals/syussinTimeAddModal'),
-  require('./modals/taikinTimeAddModal'),
-  // 他のモーダルもここに
-];
+const arrivalTimeUserSelect = require('../components/selects/arrivalTimeUserSelect');
+const departureTimeUserSelect = require('../components/selects/departureTimeUserSelect');
+const arrivalTimeDeleteSelect = require('../components/selects/arrival_time_delete_select');
+const notifyLogChannelSelect = require('../components/selects/log_channel_select');
 
-async function handleSyuttaikinComponent(interaction) {
+const arrivalTimeRegisterModal = require('../components/modals/arrival_time_register_modal');
+const arrivalTimeRegisterSubmit = require('../components/modals/arrival_time_register_submit');
+const departureTimeRegisterModal = require('../components/modals/departure_time_register_modal');
+const departureTimeRegisterSubmit = require('../components/modals/departure_time_register_submit');
+
+function findHandler(handlers, customId) {
+  return handlers.find((h) => customId.startsWith(h.customId));
+}
+
+module.exports = async function syuttaikinHandler(interaction) {
   if (interaction.isButton()) {
-    const handler = buttonHandlers.find(h => h.customId === interaction.customId || interaction.customId.startsWith(h.customId + ':'));
-    if (handler) return await handler.handle(interaction);
+    const handler = findHandler(
+      [
+        arrivalTimeButton,
+        departureTimeButton,
+        arrivalTimeDeleteButton,
+        roleSelectButton,
+      ],
+      interaction.customId
+    );
+    if (handler) return handler.handle(interaction);
   }
 
   if (interaction.isStringSelectMenu()) {
-    const handler = selectHandlers.find(h => h.customId === interaction.customId);
-    if (handler) return await handler.handle(interaction);
+    const handler = findHandler(
+      [
+        arrivalTimeUserSelect,
+        departureTimeUserSelect,
+        arrivalTimeDeleteSelect,
+        notifyLogChannelSelect,
+      ],
+      interaction.customId
+    );
+    if (handler) return handler.handle(interaction);
   }
 
   if (interaction.isModalSubmit()) {
-    const handler = modalHandlers.find(h => interaction.customId.startsWith(h.customId));
-    if (handler) return await handler.handle(interaction);
+    const handler = findHandler(
+      [
+        arrivalTimeRegisterModal,
+        arrivalTimeRegisterSubmit,
+        departureTimeRegisterModal,
+        departureTimeRegisterSubmit,
+      ],
+      interaction.customId
+    );
+    if (handler) return handler.handle(interaction);
   }
-}
-
-module.exports = { handleSyuttaikinComponent };
+};

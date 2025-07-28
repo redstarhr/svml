@@ -1,24 +1,21 @@
-// events/interactionCreate.js
 const { Events } = require('discord.js');
+const path = require('path');
 
-/**
- * コンポーネント（ボタン、モーダル等）のハンドラを検索して実行します。
- * @param {import('discord.js').Interaction} interaction - The interaction object.
- * @param {import('discord.js').Collection} collection - The collection of handlers to search in.
- * @param {import('discord.js').Client} client - The client instance.
- */
-async function handleComponent(interaction, collection, client) {
-  for (const [customId, handler] of collection.entries()) {
-    // customIdが文字列の場合は完全一致、正規表現の場合はtestで評価
-    const isMatch = (typeof customId === 'string' && customId === interaction.customId) ||
-                    (customId instanceof RegExp && customId.test(interaction.customId));
+// 各機能のインタラクションハンドラを読み込む
+const hikkakeHandler = require(path.join(__dirname, '..', 'hikkake_bot', 'components', 'hikkake_handler.js'));
+const uriageHandler = require(path.join(__dirname, '..', 'uriage_bot', 'components', 'uriage_handler.js'));
+const keihiHandler = require(path.join(__dirname, '..', 'keihi_bot', 'components', 'keihi_handler.js'));
 
-    if (isMatch) {
-      await handler.execute(interaction, client);
-      return; // 一致するハンドラが見つかったら処理を終了
-    }
-  }
-}
+// キャスト出勤管理のハンドラ読み込み
+const syuttaikinHandler = require(path.join(__dirname, '..', 'syuttaiki_bot', 'handlers', 'syuttaikinHandler.js'));
+
+// この順番で処理を試みる
+const componentHandlers = [
+    hikkakeHandler,
+    uriageHandler,
+    keihiHandler,
+    syuttaikinHandler,  // ここに追加
+];
 
 module.exports = {
   name: Events.InteractionCreate,
@@ -40,21 +37,13 @@ module.exports = {
         return;
       }
 
-      // ボタンの処理
-      if (interaction.isButton()) {
-        return await handleComponent(interaction, client.buttons, client);
+      // コマンド以外のインタラクション（ボタン、モーダル等）
+      for (const handler of componentHandlers) {
+        // ハンドラが処理できたらtrueを返すので、そこでループを抜ける
+        if (await handler.execute(interaction, client)) {
+          return;
+        }
       }
-
-      // モーダルの処理
-      if (interaction.isModalSubmit()) {
-        return await handleComponent(interaction, client.modals, client);
-      }
-
-      // セレクトメニューの処理
-      if (interaction.isAnySelectMenu()) {
-        return await handleComponent(interaction, client.selects, client);
-      }
-
     } catch (error) {
       console.error(`❌ インタラクション処理中にエラーが発生しました (ID: ${interaction.customId || interaction.commandName}):`, error);
 

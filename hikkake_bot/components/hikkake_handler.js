@@ -30,16 +30,13 @@ for (const type of componentTypes) {
   const componentFiles = getJsFiles(componentPath);
   for (const file of componentFiles) {
     const handler = require(file);
-    if (handler.customId) {
-      collections[type].set(handler.customId, handler);
-    }
+    if (handler.customId) collections[type].set(handler.customId, handler);
   }
 }
 
 async function handleComponent(interaction, collection, client) {
   for (const [customId, handler] of collection.entries()) {
-    const isMatch = (typeof customId === 'string' && customId === interaction.customId) ||
-                    (customId instanceof RegExp && customId.test(interaction.customId));
+    const isMatch = (typeof customId === 'string' && customId === interaction.customId) || (customId instanceof RegExp && customId.test(interaction.customId));
     if (isMatch) {
       await handler.execute(interaction, client);
       return true;
