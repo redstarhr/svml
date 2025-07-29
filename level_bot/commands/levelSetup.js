@@ -1,13 +1,5 @@
 // commands/levelSetup.js
-const {
-  SlashCommandBuilder,
-  PermissionFlagsBits,
-  EmbedBuilder,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  RoleSelectMenuBuilder,
-} = require('discord.js');
+const {  SlashCommandBuilder,  PermissionFlagsBits,  EmbedBuilder,  ActionRowBuilder,  ButtonBuilder,  ButtonStyle,  RoleSelectMenuBuilder,} = require('discord.js');
 const { readJsonFromGCS } = require('../../utils/gcs.js');
 
 const CONFIG_PATH = (guildId) => `level_bot/${guildId}/config.json`;
