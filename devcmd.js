@@ -13,7 +13,7 @@ if (!DISCORD_TOKEN || !CLIENT_ID || !GUILD_ID) {
 }
 
 const commands = [];
-const commandNames = new Set();
+const commandNames = new Map();
 
 // --- コマンドデータの読み込み ---
 const featureDirs = fs.readdirSync(__dirname, { withFileTypes: true })
@@ -34,12 +34,14 @@ for (const feature of featureDirs) {
             const command = require(filePath);
             if ('data' in command && 'execute' in command) {
                 const commandName = command.data.name;
-                if (commandNames.has(commandName)) {
-                    // 重複するコマンド名を検出した場合、エラーを出力してスキップ
-                    console.error(`[DEV-DEPLOY] ❌ 重複エラー: コマンド名 "${commandName}" (${filePath}) は既に使用されています。`);
+                if (commandNames.has(commandName)) { // 重複を検出
+                    // 競合している両方のファイルパスを出力
+                    console.error(`[DEV-DEPLOY] ❌ 重複エラー: コマンド名 "${commandName}" が競合しています。`);
+                    console.error(`    --> 既存: ${commandNames.get(commandName)}`);
+                    console.error(`    --> 新規: ${filePath}`);
                     continue;
                 }
-                commandNames.add(commandName);
+                commandNames.set(commandName, filePath);
                 commands.push(command.data.toJSON());
             } else {
                 console.warn(`[DEV-DEPLOY] ⚠️  [警告] ${filePath} のコマンドは 'data' または 'execute' が不足しています。`);

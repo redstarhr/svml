@@ -1,4 +1,5 @@
 // keihi_bot/handlers/keihi_handler.js
+const { MessageFlags } = require('discord.js');
 
 // TODO: 経費Botの各コンポーネントハンドラを実装してインポートします
 // const buttonHandler = require('../components/buttons/...');
@@ -23,7 +24,7 @@ module.exports = {
     console.warn(`[keihi_handler] Interaction received but no specific handler implemented for: ${interaction.customId}`);
     // 該当する処理がない場合は、エラーメッセージを返信してtrueを返すことで、他のハンドラでの処理を防ぎます
     if (interaction.isRepliable()) {
-        await interaction.reply({ content: 'この機能は現在実装中です。', ephemeral: true });
+        await interaction.reply({ content: 'この機能は現在実装中です。', flags: [MessageFlags.Ephemeral] });
     }
     return true; // このインタラクションは keihi_bot が処理したとマーク
   }

@@ -1,9 +1,9 @@
 // commands/levelSetting.js
-const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits, MessageFlags } = require('discord.js');
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('レベル設定')
+    .setName('レベルアップ設定')
     .setDescription('レベル機能の設定パネルを表示します')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
@@ -22,7 +22,7 @@ module.exports = {
     await interaction.reply({
       content: 'レベル設定パネルを表示します：',
       components: [row],
-      ephemeral: true,
+      flags: [MessageFlags.Ephemeral],
     });
   },
 };

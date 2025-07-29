@@ -7,6 +7,7 @@ const {
   ButtonBuilder,
   ButtonStyle,
   RoleSelectMenuBuilder,
+  MessageFlags,
 } = require('discord.js');
 const { readJsonFromGCS, saveJsonToGCS } = require('../../common/gcs/gcsUtils');
 
@@ -19,7 +20,7 @@ module.exports = {
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   async execute(interaction) {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     const guildId = interaction.guild.id;
     const configPath = CONFIG_PATH(guildId);

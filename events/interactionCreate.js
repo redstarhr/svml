@@ -1,4 +1,4 @@
-const { Events } = require('discord.js');
+const { Events, MessageFlags } = require('discord.js');
 
 // 各機能のindex.jsからハンドラを読み込むことで、パスの変更に強くなります
 const { hikkakeHandler } = require('../hikkake_bot');
@@ -47,7 +47,7 @@ module.exports = {
     } catch (error) {
       console.error(`❌ インタラクション処理中にエラーが発生しました (ID: ${interaction.customId || interaction.commandName}):`, error);
 
-      const errorMessage = { content: 'コマンドの実行中にエラーが発生しました。', ephemeral: true };
+      const errorMessage = { content: 'コマンドの実行中にエラーが発生しました。', flags: [MessageFlags.Ephemeral] };
 
       try {
         if (interaction.replied || interaction.deferred) {

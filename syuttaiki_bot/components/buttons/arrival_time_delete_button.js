@@ -1,5 +1,5 @@
 // components/buttons/arrival_time_delete_button.js
-const { ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
+const { ActionRowBuilder, StringSelectMenuBuilder, MessageFlags } = require('discord.js');
 const { readJSON } = require('../../../common/fileHelper');
 const path = require('path');
 
@@ -18,7 +18,7 @@ module.exports = {
     const arrivalTimes = data.syuttaikin?.arrivalTimes || [];
 
     if (arrivalTimes.length === 0) {
-      await interaction.reply({ content: '削除可能な出勤時間がありません。', ephemeral: true });
+      await interaction.reply({ content: '削除可能な出勤時間がありません。', flags: [MessageFlags.Ephemeral] });
       return;
     }
 
@@ -36,6 +36,6 @@ module.exports = {
 
     const row = new ActionRowBuilder().addComponents(selectMenu);
 
-    await interaction.reply({ content: '削除する出勤時間を選択してください。', components: [row], ephemeral: true });
+    await interaction.reply({ content: '削除する出勤時間を選択してください。', components: [row], flags: [MessageFlags.Ephemeral] });
   },
 };
