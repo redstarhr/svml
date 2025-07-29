@@ -9,8 +9,8 @@ const castShiftSetup = require('./commands/castShiftSetup.js');
 const castShiftSettings = require('./commands/castShiftSettings.js');
 
 // --- イベントハンドラ ---
-const syuttaikinHandler = require('./syuttaikinHandler.js');
-const castShiftHandler = require('./castShiftHandler.js');
+const syuttaikinHandler = require('./handlers/syuttaikinHandler.js');
+const castShiftHandler = require('./handlers/castShiftHandler.js');
 
 module.exports = {
   syuttaikinHandler,

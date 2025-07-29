@@ -1,6 +1,6 @@
 // hikkake_bot/utils/hikkake_modal_handler.js
-const { readState, writeState } = require('./hikkakeStateManager');
-const { updateAllHikkakePanels } = require('./hikkakePanelManager');
+const { readState, writeState, getActiveStaffAllocation } = require('./hikkakeStateManager');
+const { updateAllHikkakePanels } = require('../utils/hikkakePanelManager');
 const { logToThread } = require('./threadLogger');
 const { readReactions, writeReactions } = require('./hikkakeReactionManager');
 
@@ -25,7 +25,7 @@ module.exports = {
             const castPura = 1; // Assuming the selected cast is 'pura'
             const castKama = 0;
 
-            const allocatedPura = state.orders[type].filter(o => ['order', 'douhan', 'casual_arrival'].includes(o.type)).reduce((sum, o) => sum + (o.castPura || 0), 0);
+            const { allocatedPura } = getActiveStaffAllocation(state, type);
             const availablePura = (state.staff[type].pura || 0) - allocatedPura;
 
             if (castPura > availablePura) {

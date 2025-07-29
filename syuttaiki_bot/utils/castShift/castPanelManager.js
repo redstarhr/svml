@@ -1,3 +1,5 @@
+// syuttaiki_bot/utils/castShift/castPanelManager.js
+
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const castStateManager = require('./castStateManager');
 

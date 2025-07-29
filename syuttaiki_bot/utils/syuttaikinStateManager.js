@@ -1,29 +1,53 @@
 // syuttaiki_bot/utils/syuttaikinStateManager.js
 
-const { readJsonFromGCS, saveJsonToGCS } = require('../../common/gcs/gcsUtils');
-
-const STATE_FILE_PATH = (guildId) => `data/${guildId}/syuttaikin_state.json`;
+const { readJsonFromGCS, saveJsonToGCS } = require('../../common/gcs/gcsUtils.js');
 
 /**
- * Reads the current clock-in/out state from GCS.
+ * GCSの保存パスを返す
  * @param {string} guildId
- * @returns {Promise<object>} The state object.
+ * @param {string} [date] YYYY-MM-DD形式の日付（任意）
+ * @returns {string}
  */
-async function readState(guildId) {
-    try {
-        const state = await readJsonFromGCS(STATE_FILE_PATH(guildId));
-        return state || { users: {} };
-    } catch (error) {
-        if (error.code === 404) {
-            return { users: {} }; // Return a default state if the file doesn't exist
-        }
-        console.error('❌ Error reading syuttaikin state from GCS:', error);
-        throw error;
-    }
+const getFilePath = (guildId, date) => {
+  if (date) {
+    return `syuttaiki_bot/${guildId}/state_${date}.json`;
+  }
+  return `syuttaiki_bot/${guildId}/state.json`;
+};
+
+/**
+ * 出退勤状態をGCSから読み込む
+ * @param {string} guildId
+ * @param {string} [date] 任意の日付（YYYY-MM-DD）
+ * @returns {Promise<object>} 状態オブジェクト。存在しなければ空初期値
+ */
+async function readState(guildId, date) {
+  try {
+    const filePath = getFilePath(guildId, date);
+    const state = await readJsonFromGCS(filePath);
+    return state ?? { users: {} };
+  } catch (error) {
+    console.error(`[syuttaikinStateManager.readState] Error reading state for guildId=${guildId}, date=${date}`, error);
+    throw error;
+  }
 }
 
-async function writeState(guildId, state) {
-  await saveJsonToGCS(STATE_FILE_PATH(guildId), state);
+/**
+ * 出退勤状態をGCSに書き込む
+ * @param {string} guildId
+ * @param {object} state 保存する状態オブジェクト
+ * @param {string} [date] 任意の日付（YYYY-MM-DD）
+ * @returns {Promise<boolean>} 書き込み成功時true
+ */
+async function writeState(guildId, state, date) {
+  try {
+    const filePath = getFilePath(guildId, date);
+    await saveJsonToGCS(filePath, state);
+    return true;
+  } catch (error) {
+    console.error(`[syuttaikinStateManager.writeState] Error writing state for guildId=${guildId}, date=${date}`, error);
+    throw error;
+  }
 }
 
 module.exports = {

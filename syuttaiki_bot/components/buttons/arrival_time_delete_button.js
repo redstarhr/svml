@@ -1,6 +1,6 @@
 // components/buttons/arrival_time_delete_button.js
 const { ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
-const { readJSON } = require('../../utils/fileHelper');
+const { readJSON } = require('../../../common/fileHelper');
 const path = require('path');
 
 module.exports = {

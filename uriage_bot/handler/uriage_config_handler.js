@@ -1,5 +1,5 @@
 // uriage_bot/handlers/uriage_config_handler.js
-const { readJsonFromGCS, saveJsonToGCS } = require('../../utils/gcs.js');
+const { readJsonFromGCS, saveJsonToGCS } = require('../../common/gcs/gcsUtils.js');
 
 const SETTINGS_FILE_PATH = (guildId) => `uriage_bot/${guildId}/config.json`;
 

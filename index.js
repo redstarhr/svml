@@ -17,28 +17,6 @@ for (const envVar of requiredEnv) {
 
 console.log('Google Credentials Path:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
 
-/**
- * 指定されたディレクトリから再帰的に .js ファイルを探索します。
- * @param {string} dir - 探索を開始するディレクトリ
- * @returns {string[]} 見つかったファイルのフルパスの配列
- */
-function getJsFiles(dir) {
-  const files = [];
-  if (!fs.existsSync(dir)) {
-    return files;
-  }
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
-  for (const entry of entries) {
-    const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      files.push(...getJsFiles(fullPath));
-    } else if (entry.isFile() && entry.name.endsWith('.js')) {
-      files.push(fullPath);
-    }
-  }
-  return files;
-}
-
 // --- コマンドハンドラの読み込み ---
 client.commands = new Collection();
 // プロジェクトルートにある `_bot` で終わるディレクトリを自動的に探索
@@ -49,17 +27,28 @@ const featureDirs = fs.readdirSync(__dirname, { withFileTypes: true })
 console.log(`🔍 ${featureDirs.length}個の機能ディレクトリを検出: ${featureDirs.join(', ')}`);
 for (const feature of featureDirs) {
     const commandsPath = path.join(__dirname, feature, 'commands');
-    const commandFiles = getJsFiles(commandsPath);
+    if (!fs.existsSync(commandsPath)) {
+      continue;
+    }
+    // commandsディレクトリ直下の.jsファイルのみを読み込む（再帰しない）
+    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
     for (const file of commandFiles) {
+        const filePath = path.join(commandsPath, file);
         try {
-            const command = require(file);
+            const command = require(filePath);
             if ('data' in command && 'execute' in command) {
-                client.commands.set(command.data.name, command);
+                const commandName = command.data.name;
+                if (client.commands.has(commandName)) {
+                    // 重複するコマンド名を検出した場合、エラーを出力してスキップ
+                    console.error(`❌ 重複エラー: コマンド名 "${commandName}" (${filePath}) は既に読み込まれています。上書きはしません。`);
+                    continue;
+                }
+                client.commands.set(commandName, command);
             } else {
-                console.warn(`⚠️  [警告] ${file} のコマンドは 'data' または 'execute' が不足しています。`);
+                console.warn(`⚠️  [警告] ${filePath} のコマンドは 'data' または 'execute' が不足しています。`);
             }
         } catch (error) {
-            console.error(`❌ コマンドファイルの読み込みに失敗: ${file}`, error);
+            console.error(`❌ コマンドファイルの読み込みに失敗: ${filePath}`, error);
         }
     }
 }

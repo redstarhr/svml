@@ -1,4 +1,6 @@
-const { readJSON, writeJSON } = require('../../fileHelper');
+// hikkake_bot/components/selects/log_channel_select.js
+
+const { readJSON, writeJSON } = require('../../common/fileHelper');
 const path = require('path');
 
 module.exports = {

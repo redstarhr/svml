@@ -1,11 +1,11 @@
 // hikkake_bot/commands/hikkakeReactionAdmin.js
 
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } = require('discord.js');
-const { readReactions } = require('../../hikkake_bot/utils/hikkakeReactionManager');
+const { readReactions } = require('../utils/hikkakeReactionManager');
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('反応文管理')
+    .setName('hikkake_reaction_admin')
     .setDescription('登録済みの反応文を一覧表示・削除します。')
     .addStringOption(option =>
       option.setName('category')

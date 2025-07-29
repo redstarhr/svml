@@ -1,16 +1,13 @@
-// commands/castShiftSettings.js
-
+// syuttaiki_bot/commands/castShiftSettings.js
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
-const { showSettingsMenu } = require('../utils/castShift/castSettingsManager');
+// const { readJSON } = require('../../../common/fileHelper.js'); // Example usage
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('キャスト出退勤設定')
-    .setDescription('キャストの出勤・退勤時間や通知ログを管理します')
+    .setName('シフト設定')
+    .setDescription('キャストのシフト関連設定を行います。')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
-
   async execute(interaction) {
-    await interaction.deferReply({ ephemeral: true });
-    await showSettingsMenu(interaction);
-  }
+    await interaction.reply({ content: 'このコマンドは現在開発中です。', ephemeral: true });
+  },
 };

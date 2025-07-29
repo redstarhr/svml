@@ -1,6 +1,6 @@
 // hikkake_bot/utils/hikkakeReactionManager.js
 
-const { readJsonFromGCS, saveJsonToGCS } = require('../../utils/gcs');
+const { readJsonFromGCS, saveJsonToGCS, listFilesInGCS, deleteGCSFile } = require('../../common/gcs/gcsUtils');
 
 const basePath = 'hikkake';
 

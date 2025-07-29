@@ -7,10 +7,16 @@
 // --- コマンド ---
 const uriageConfig = require('./commands/uriage_config.js');
 const uriageHoukoku = require('./commands/uriage_houkoku.js');
+const uriageCsv = require('./commands/uriage_csv.js');
 
 // --- イベントハンドラ ---
-const uriageHandler = require('./uriage_handler.js');
+const uriageHandler = require('./handler/uriage_handler.js');
 
 module.exports = {
-  uriageConfig, uriageHoukoku, uriageHandler
+  // コマンド
+  uriageConfig,
+  uriageHoukoku,
+  uriageCsv,
+  // ハンドラ
+  uriageHandler,
 };

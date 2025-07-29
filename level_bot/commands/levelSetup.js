@@ -1,6 +1,14 @@
 // commands/levelSetup.js
-const {  SlashCommandBuilder,  PermissionFlagsBits,  EmbedBuilder,  ActionRowBuilder,  ButtonBuilder,  ButtonStyle,  RoleSelectMenuBuilder,} = require('discord.js');
-const { readJsonFromGCS } = require('../../utils/gcs.js');
+const {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  RoleSelectMenuBuilder,
+} = require('discord.js');
+const { readJsonFromGCS, saveJsonToGCS } = require('../../common/gcs/gcsUtils');
 
 const CONFIG_PATH = (guildId) => `level_bot/${guildId}/config.json`;
 
@@ -11,15 +19,24 @@ module.exports = {
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   async execute(interaction) {
+    await interaction.deferReply({ ephemeral: true });
+
     const guildId = interaction.guild.id;
-    let config = await readJsonFromGCS(CONFIG_PATH(guildId)) ?? {
-      enabled: true,
-      xpPerMessage: 5,
-      cooldownSec: 30,
-      notifyChannelId: null,
-      disabledRoles: [],
-      levelStamps: [],
-    };
+    const configPath = CONFIG_PATH(guildId);
+    let config = await readJsonFromGCS(configPath);
+
+    // If no config exists, create and save a default one.
+    if (!config) {
+      config = {
+        enabled: true,
+        xpPerMessage: 5,
+        cooldownSec: 30,
+        notifyChannelId: null,
+        disabledRoles: [], // Corresponds to 'ignoreRoles'
+        levelStamps: [],   // Corresponds to 'stamps'
+      };
+      await saveJsonToGCS(configPath, config);
+    }
 
     const embed = new EmbedBuilder()
       .setTitle('📈 レベルアップ設定パネル')
@@ -48,13 +65,12 @@ module.exports = {
       .setLabel('スタンプ削除')
       .setStyle(ButtonStyle.Danger);
 
-    await interaction.reply({
+    await interaction.editReply({
       embeds: [embed],
       components: [
         new ActionRowBuilder().addComponents(roleSelect),
         new ActionRowBuilder().addComponents(stampAddBtn, stampRemoveBtn),
       ],
-      ephemeral: true,
     });
   },
 };

@@ -1,5 +1,5 @@
 // hikkake_bot/utils/hikkakeArrivalSelect.js
-const { readState, writeState } = require('./hikkakeStateManager');
+const { readState, writeState } = require('../handler/hikkakeStateManager');
 const { updateAllHikkakePanels } = require('./hikkakePanelManager');
 const { logToThread } = require('./threadLogger');
 const { createSelectMenuRow, createNumericOptions } = require('./discordUtils');

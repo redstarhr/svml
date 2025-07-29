@@ -1,6 +1,6 @@
 // hikkake_bot/utils/hikkakeReactionDeleteSelect.js
 
-const { readReactions, writeReactions } = require('./hikkakeReactionManager');
+const { readReactions, writeReactions } = require('../handler/hikkakeReactionManager');
 
 module.exports = {
   customId: /^hikkake_reaction_delete$/,

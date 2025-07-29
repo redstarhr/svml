@@ -1,7 +1,7 @@
 // syuttaiki_bot/castShiftHandler.js
 
-const castStateManager = require('./utils/castShift/castStateManager');
-const { createOrUpdateCastShiftEmbed } = require('./utils/castShift/castPanelManager');
+const castStateManager = require('../utils/castShift/castStateManager');
+const { createOrUpdateCastShiftEmbed } = require('../utils/castShift/castPanelManager');
 const { DateTime } = require('luxon');
 
 /**

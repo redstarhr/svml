@@ -12,6 +12,9 @@ sudo apt install -y nodejs
 node -v
 npm -v
 
+echo "🟡 PM2 のグローバルインストール..."
+sudo npm install -g pm2
+
 echo "🟡 タイムゾーンを Asia/Tokyo に設定..."
 sudo timedatectl set-timezone Asia/Tokyo
 
@@ -58,6 +61,9 @@ vim .env
 echo "🟡 npm install を実行..."
 npm install
 
-echo "✅ セットアップ完了！"
-echo "この後は、Dockerfile を使用してコンテナイメージをビルドし、"
-echo "Google Cloud Run にデプロイしてください。"
+echo "🟡 PM2 でアプリを起動..."
+pm2 start ecosystem.config.js
+pm2 save
+pm2 startup | tail -n 1 | bash
+
+echo "✅ セットアップ完了！PM2 により svml_zimu_bot が自動起動されます。"

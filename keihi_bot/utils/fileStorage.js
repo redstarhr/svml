@@ -1,5 +1,5 @@
 // keihi_bot/utils/fileStorage.js
-const { readJsonFromGCS, saveJsonToGCS } = require('../../common/gcs/gcsUtils');
+const { readJsonFromGCS, saveJsonToGCS } = require('../../common/gcs/gcsUtils.js');
 const { createAndSaveSpreadsheet } = require('./spreadsheet.js');
 
 // ────────── 内部ユーティリティ ──────────

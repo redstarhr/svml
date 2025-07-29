@@ -1,5 +1,5 @@
 // utils/syuttaikinLogger.js
-const { readJSON } = require('./fileHelper');
+const { readJSON, writeJSON } = require('../../common/fileHelper');
 
 async function sendSyukkaTaikinLog(guild, message) {
   try {

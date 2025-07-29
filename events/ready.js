@@ -2,10 +2,11 @@
 const { Events } = require('discord.js');
 const { Storage } = require('@google-cloud/storage');
 const path = require('path');
+const { exec } = require('node:child_process');
 
 // hikkake_botのユーティリティ関数を読み込みます。
-// __dirname (eventsフォルダ) から一つ上の階層に移動してファイルを探します。
-const { startLogCleanupInterval } = require(path.join(__dirname, '..', 'hikkake_bot', 'utils', 'hikkakePanelManager.js'));
+// TODO: module-aliasを導入して '@bots/hikkake_bot/utils/hikkakePanelManager.js' のようなパスにリファクタリングすることを推奨します
+const { startLogCleanupInterval } = require('../hikkake_bot/utils/hikkakePanelManager.js');
 
 /**
  * Google Cloud Storageへの接続を確認します。
@@ -41,6 +42,48 @@ async function checkGcsConnection() {
   }
 }
 
+/**
+ * 開発環境でコマンドを自動登録します。
+ * GUILD_IDが.envに設定されている場合のみ実行されます。
+ */
+function deployDevCommands() {
+  if (!process.env.GUILD_ID) {
+    // GUILD_IDがなければ本番環境とみなし、何もしない
+    return;
+  }
+
+  console.log('[READY-EVENT] 開発環境を検出しました。コマンドを自動登録します...');
+  const deployProcess = exec('node devcmd.js');
+
+  deployProcess.stdout.on('data', (data) => {
+    process.stdout.write(`[DEV-DEPLOY] ${data}`);
+  });
+
+  deployProcess.stderr.on('data', (data) => {
+    process.stderr.write(`[DEV-DEPLOY-ERROR] ${data}`);
+  });
+
+  deployProcess.on('close', (code) => {
+    console.log(`[READY-EVENT] コマンド登録プロセスがコード ${code} で終了しました。`);
+  });
+}
+
+/**
+ * Botの起動情報をコンソールに出力します。
+ * @param {import('discord.js').Client} client
+ */
+function logBotInfo(client) {
+  console.log('------------------------------------------------------');
+  console.log(`✅ Botの準備が完了しました。`);
+  console.log(`   ログインアカウント: ${client.user.tag}`);
+
+  const guilds = client.guilds.cache;
+  const totalUsers = guilds.reduce((acc, guild) => acc + guild.memberCount, 0);
+
+  console.log(`   接続サーバー数: ${guilds.size} サーバー`);
+  console.log(`   総ユーザー数: ${totalUsers} ユーザー`);
+}
+
 module.exports = {
   name: Events.ClientReady,
   once: true,
@@ -49,26 +92,16 @@ module.exports = {
    * @param {import('discord.js').Client} client Discordクライアントインスタンス
    */
   async execute(client) {
+    logBotInfo(client);
+
+    // 並列で実行可能な起動時タスク
+    await Promise.all([
+      checkGcsConnection(),
+      deployDevCommands(), // 開発環境の場合のみ実行される
+    ]);
+
     console.log('------------------------------------------------------');
-    console.log(`✅ Botの準備が完了しました。`);
-    console.log(`   ログインアカウント: ${client.user.tag}`);
-
-    // Botが参加しているサーバー数と総ユーザー数を取得・表示
-    const guilds = client.guilds.cache;
-    const totalUsers = guilds.reduce((acc, guild) => acc + guild.memberCount, 0);
-
-    console.log(`   接続サーバー数: ${guilds.size} サーバー`);
-    console.log(`   総ユーザー数: ${totalUsers} ユーザー`);
-    console.log('   参加サーバー一覧:');
-    guilds.forEach(guild => {
-      console.log(`     - ${guild.name} (ID: ${guild.id})`);
-    });
-    console.log('------------------------------------------------------');
-
-    // Google Cloud Storageへの接続を確認
-    await checkGcsConnection();
-
-    // hikkake_bot用の定期的なログクリーンアップ処理を開始
+    // 定期実行タスクの開始
     startLogCleanupInterval(client);
     console.log('✅ 定期的なログクリーンアップ処理を開始しました。');
   },
