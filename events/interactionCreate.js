@@ -3,16 +3,18 @@ const { Events } = require('discord.js');
 // 各機能のindex.jsからハンドラを読み込むことで、パスの変更に強くなります
 const { hikkakeHandler } = require('../hikkake_bot');
 const { uriageHandler } = require('../uriage_bot');
-// const { keihiHandler } = require('../keihi_bot'); // TODO: keihi_botも同様の構造に修正後に有効化
-
-// キャスト出勤管理のハンドラ読み込み
-// const syuttaikinHandler = require(path.join(__dirname, '..', 'syuttaiki_bot', 'handlers', 'syuttaikinHandler.js'));
+const { syuttaikinHandler, castShiftHandler } = require('../syuttaiki_bot');
+const { keihiHandler } = require('../keihi_bot');
+const { levelHandler } = require('../level_bot');
 
 // この順番で処理を試みる
 const componentHandlers = [
     hikkakeHandler,
     uriageHandler,
-    // keihiHandler,
+    syuttaikinHandler,
+    castShiftHandler,
+    keihiHandler,
+    levelHandler,
 ].filter(Boolean); // 未定義のハンドラを除外
 
 module.exports = {

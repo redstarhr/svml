@@ -11,7 +11,7 @@ const hikkakeSetting = require('./commands/hikkakeSetting.js');
 const hikkakeSetup = require('./commands/hikkakeSetup.js');
 
 // --- イベントハンドラ ---
-const hikkakeHandler = require('./handlers/hikkake_handler.js');
+const hikkakeHandler = require('./hikkake_handler.js');
 
 module.exports = {
   hikkakeReactionAdmin,

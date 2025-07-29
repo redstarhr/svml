@@ -7,9 +7,9 @@ const {
     PermissionFlagsBits,
     EmbedBuilder,
 } = require('discord.js');
-const { readJsonFromGCS, saveJsonToGCS } = require('../../common/gcs/gcsUtils');
+const { readJsonFromGCS } = require('../../common/gcs/gcsUtils');
 
-const SETTINGS_FILE_PATH = (guildId) => `data/${guildId}/${guildId}.json`;
+const SETTINGS_FILE_PATH = (guildId) => `data/${guildId}/uriage_config.json`;
 
 // コマンド実行時の処理
 async function execute(interaction) {

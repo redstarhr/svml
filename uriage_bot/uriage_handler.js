@@ -13,7 +13,7 @@ const {
 const { readJsonFromGCS, saveJsonToGCS } = require('../common/gcs/gcsUtils');
 const { DateTime } = require('luxon');
 
-const SETTINGS_FILE_PATH = (guildId) => `data/${guildId}/${guildId}.json`;
+const SETTINGS_FILE_PATH = (guildId) => `data/${guildId}/uriage_config.json`;
 
 /**
  * ロール選択メニューの操作を処理
@@ -196,11 +196,6 @@ async function handleModalSubmit(interaction) {
     }
 }
 
-/**
- * 売上報告の承認・却下を処理します
- * @param {import('discord.js').ButtonInteraction} interaction
- * @param {boolean} isApproved - 承認されたかどうか
- */
 async function handleApproval(interaction, isApproved) {
     await interaction.deferUpdate();
 
@@ -264,6 +259,22 @@ async function handleApproval(interaction, isApproved) {
             updatedButtons.addComponents(newButton);
         });
 
+        // DM通知を試みる
+        try {
+            const reporter = await interaction.client.users.fetch(reportData.reporterId);
+            const dmEmbed = new EmbedBuilder()
+                .setTitle(`あなたの売上報告が${isApproved ? '承認' : '却下'}されました`)
+                .setColor(isApproved ? 0x57F287 : 0xED4245)
+                .setDescription(`元の報告へジャンプ`)
+                .addFields({ name: '日付', value: DateTime.fromISO(reportData.date).toFormat('M/d') })
+                .setFooter({ text: `処理者: ${interaction.user.tag}` })
+                .setTimestamp();
+            await reporter.send({ embeds: [dmEmbed] });
+        } catch (dmError) {
+            console.warn(`⚠️ 報告者(${reportData.reporterTag})へのDM送信に失敗しました:`, dmError.message);
+            // DMが送れなくても処理は続行する
+        }
+
         await interaction.editReply({ embeds: [originalEmbed], components: [updatedButtons] });
 
     } catch (error) {
@@ -273,67 +284,6 @@ async function handleApproval(interaction, isApproved) {
 }
 
 /**
- * 売上報告の承認・却下を処理します
- * @param {import('discord.js').ButtonInteraction} interaction
- * @param {boolean} isApproved - 承認されたかどうか
- */
-async function handleApproval(interaction, isApproved) {
-    await interaction.deferUpdate();
-
-    const guildId = interaction.guildId;
-    const member = interaction.member;
-
-    // 承認ロールを持っているか、または管理者かを確認
-    const settingsPath = SETTINGS_FILE_PATH(guildId);
-    const settings = await readJsonFromGCS(settingsPath) || {};
-    const approvalRoleIds = settings.approvalRoleIds || [];
-
-    let hasPermission = false;
-    if (approvalRoleIds.length > 0) {
-        hasPermission = member.roles.cache.some(role => approvalRoleIds.includes(role.id));
-    } else {
-        // ロール未設定の場合はサーバー管理者のみが操作可能
-        hasPermission = member.permissions.has(PermissionFlagsBits.Administrator);
-    }
-
-    if (!hasPermission) {
-        await interaction.followUp({ content: '⚠️ この操作を行う権限がありません。', ephemeral: true });
-        return;
-    }
-
-    // customIdから日付を抽出
-    const dateForFilename = interaction.customId.split('_').pop();
-    const dataPath = `data/${guildId}/uriagehoukoku_${dateForFilename}.json`;
-
-    try {
-        const reportData = await readJsonFromGCS(dataPath);
-        if (!reportData) {
-            await interaction.editReply({ content: 'エラー: 元の報告データが見つかりませんでした。', components: [] });
-            return;
-        }
-
-        // 承認情報をデータに追記
-        reportData.approval = {
-            status: isApproved ? 'approved' : 'rejected',
-            approverId: interaction.user.id,
-            approverTag: interaction.user.tag,
-            approvedAt: DateTime.now().toISO(),
-        };
-        await saveJsonToGCS(dataPath, reportData);
-
-        // Embedを更新
-        const originalEmbed = EmbedBuilder.from(interaction.message.embeds[0]);
-        originalEmbed.setColor(isApproved ? 0x57F287 : 0xED4245) // Green: Approved, Red: Rejected
-            .setFields(interaction.message.embeds[0].fields.filter(field => field.name !== 'ステータス')) // 既存のステータスを削除
-            .addFields({
-                name: 'ステータス',
-                value: `${isApproved ? '✅ 承認済み' : '❌ 却下済み'} (by ${interaction.user.tag})`,
-            });
-
-        // ボタンを更新（承認・却下のみ無効化）
-        const updatedButtons = new ActionRowBuilder();
-        interaction.message.components[
-/**
  * 売上報告モーダルを表示します
  * @param {import('discord.js').ButtonInteraction} interaction
  * @param {object | null} [reportData=null] - 編集時にモーダルに事前入力するデータ
@@ -341,10 +291,9 @@ async function handleApproval(interaction, isApproved) {
  */
 async function showSalesReportModal(interaction, reportData = null, messageId = null) {
     const isEdit = !!reportData;
-    const dateForId = isEdit ? DateTime.fromISO(reportData.date).toFormat('yyyy-MM-dd') : '';
 
     const modal = new ModalBuilder()
-        .setCustomId(isEdit ? `sales_report_edit_modal_${dateForId}_${messageId}` : 'sales_report_modal')
+        .setCustomId(isEdit ? `sales_report_edit_modal_${messageId}` : 'sales_report_modal')
         .setTitle(isEdit ? '売上報告の修正' : '売上報告');
 
     // 各入力フィールドを定義

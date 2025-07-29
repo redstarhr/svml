@@ -1,12 +1,8 @@
-const { Storage } = require('@google-cloud/storage');
-const path = require('path');
-const storage = new Storage();
-const BUCKET_NAME = 'data-svml';
+const { saveJsonToGCS } = require('../../common/gcs/gcsUtils');
 
 async function writeState(guildId, date, data) {
   const filePath = `cast_attendance/${guildId}/state_${date}.json`;
-  const file = storage.bucket(BUCKET_NAME).file(filePath);
-  await file.save(JSON.stringify(data, null, 2), { contentType: 'application/json' });
+  await saveJsonToGCS(filePath, data);
 }
 
 module.exports = { writeState };

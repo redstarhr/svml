@@ -41,7 +41,12 @@ function getJsFiles(dir) {
 
 // --- コマンドハンドラの読み込み ---
 client.commands = new Collection();
-const featureDirs = ['hikkake_bot', 'uriage_bot', 'keihi_bot'];
+// プロジェクトルートにある `_bot` で終わるディレクトリを自動的に探索
+const featureDirs = fs.readdirSync(__dirname, { withFileTypes: true })
+  .filter(dirent => dirent.isDirectory() && dirent.name.endsWith('_bot'))
+  .map(dirent => dirent.name);
+
+console.log(`🔍 ${featureDirs.length}個の機能ディレクトリを検出: ${featureDirs.join(', ')}`);
 for (const feature of featureDirs) {
     const commandsPath = path.join(__dirname, feature, 'commands');
     const commandFiles = getJsFiles(commandsPath);
@@ -73,7 +78,7 @@ for (const file of eventFiles) {
     client.on(event.name, (...args) => event.execute(...args, client));
   }
 }
-console.log(`✅ ${eventFiles.length}個のイベントハンドラを読み込みました。`);
+console.log(`✅ ${eventFiles.length} 個のイベントハンドラを読み込みました。`);
 
 // --- Discord Bot ログイン ---
 client.login(process.env.DISCORD_TOKEN);

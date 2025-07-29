@@ -9,7 +9,7 @@ const uriageConfig = require('./commands/uriage_config.js');
 const uriageHoukoku = require('./commands/uriage_houkoku.js');
 
 // --- イベントハンドラ ---
-const uriageHandler = require('./handlers/uriage_handler.js');
+const uriageHandler = require('./uriage_handler.js');
 
 module.exports = {
   uriageConfig, uriageHoukoku, uriageHandler

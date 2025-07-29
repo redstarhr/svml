@@ -1,4 +1,3 @@
-// utils/gcs.js
 const { Storage } = require('@google-cloud/storage');
 
 // GCSクライアントを初期化
@@ -72,23 +71,6 @@ async function listFilesInGCS(prefix) {
 }
 
 /**
- * GCS上のファイルをコピーする
- * @param {string} sourcePath - コピー元ファイルパス
- * @param {string} destinationPath - コピー先ファイルパス
- * @throws ファイルコピーに失敗した場合は例外をスローします
- */
-async function copyGCSFile(sourcePath, destinationPath) {
-  try {
-    const bucket = storage.bucket(bucketName);
-    await bucket.file(sourcePath).copy(bucket.file(destinationPath));
-    console.log(`[GCS] 🔄 ${sourcePath} を ${destinationPath} にコピーしました。`);
-  } catch (error) {
-    console.error(`❌ GCSファイルコピーエラー: ${sourcePath} -> ${destinationPath}`, error);
-    throw error;
-  }
-}
-
-/**
  * GCS上のファイルを削除する
  * @param {string} filePath - 削除対象ファイルのGCSパス
  * @throws ファイル削除に失敗した場合は例外をスローします
@@ -110,6 +92,5 @@ module.exports = {
   saveJsonToGCS,
   readJsonFromGCS,
   listFilesInGCS,
-  copyGCSFile,
   deleteGCSFile,
 };
