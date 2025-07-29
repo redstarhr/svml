@@ -17,9 +17,14 @@
     "discord.js": "^14.21.0",
     "dotenv": "^16.6.1",
     "googleapis": "^154.1.0",
-    "luxon": "^3.7.1"
+    "luxon": "^3.7.1",
+    "module-alias": "^2.2.3"
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "_moduleAliases": {
+    "@root": ".",
+    "@common": "common"
   }
 }

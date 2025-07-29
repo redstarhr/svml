@@ -1,21 +1,21 @@
 // syuttaiki_bot/index.js
 /**
  * syuttaiki_botのコマンドとイベントハンドラモジュールをまとめてエクスポートします。
+ * プロジェクトルートの index.js と events/interactionCreate.js から利用されます。
  */
 
 // --- コマンド ---
-const syuttaikinPanel = require('./commands/syuttaikin_panel.js');
-const castShiftSetup = require('./commands/castShiftSetup.js');
-const castShiftSettings = require('./commands/castShiftSettings.js');
+const castPanel = require('./commands/cast-panel.js');
+const castSettings = require('./commands/cast-settings.js');
 
 // --- イベントハンドラ ---
+// interactionCreate.js から呼び出される
 const syuttaikinHandler = require('./handlers/syuttaikinHandler.js');
-const castShiftHandler = require('./handlers/castShiftHandler.js');
+const castSettingsHandler = require('./handlers/castSettingsHandler.js');
 
 module.exports = {
-  syuttaikinHandler,
-  castShiftHandler,
-  syuttaikinPanel,
-  castShiftSetup,
-  castShiftSettings,
+  // コマンドの配列
+  commands: [castPanel, castSettings],
+  // ハンドラの配列
+  handlers: [syuttaikinHandler, castSettingsHandler],
 };

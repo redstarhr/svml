@@ -1,231 +1,137 @@
 // hikkake_bot/utils/hikkake_select_handler.js
-const { readState, writeState, getActiveStaffAllocation } = require('./hikkakeStateManager');
-const { updateAllHikkakePanels } = require('../utils/hikkakePanelManager');
-const { logToThread } = require('./threadLogger');
+const { readState, writeState } = require('./hikkakeStateManager');
+const { updateAllHikkakePanels } = require('./hikkakePanelManager');
+const { ModalBuilder, TextInputBuilder, ActionRowBuilder, TextInputStyle } = require('discord.js');
+const { DateTime } = require('luxon');
 const { createSelectMenuRow, createNumericOptions } = require('./discordUtils');
-const { readReactions, getRandomReaction, writeReactions } = require('./hikkakeReactionManager');
-const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
 
-module.exports = {
-  async execute(interaction) {
-    if (!interaction.isAnySelectMenu()) return false;
+/**
+ * Handles select menu interactions for the hikkake_bot.
+ * @param {import('discord.js').AnySelectMenuInteraction} interaction
+ * @returns {Promise<boolean>}
+ */
+async function execute(interaction) {
+  // --- プラ釜スタッフ数設定 (ステップ1: プラ人数選択) ---
+  const plakamaStep1Match = interaction.customId.match(/^hikkake_plakama_step1_(quest|tosu|horse)$/);
+  if (plakamaStep1Match) {
+    const [, type] = plakamaStep1Match;
+    const puraCount = interaction.values[0];
+    const row = createSelectMenuRow(`hikkake_plakama_step2_${type}_${puraCount}`, 'カマの人数を選択 (0-24)', createNumericOptions(25, '人', 0));
+    await interaction.update({ content: `次にカマの人数を選択してください。`, components: [row] });
+    return true;
+  }
 
-    const { customId, client, guildId } = interaction;
+  // --- プラ釜スタッフ数設定 (ステップ2: カマ人数選択 & 保存) ---
+  const plakamaStep2Match = interaction.customId.match(/^hikkake_plakama_step2_(quest|tosu|horse)_(\d+)$/);
+  if (plakamaStep2Match) {
+    await interaction.deferUpdate();
+    const [, type, puraCount] = plakamaStep2Match;
+    const kamaCount = interaction.values[0];
+    const guildId = interaction.guild.id;
+    const state = await readState(guildId);
 
-    // --- Plakama 設定 ---
-    if (customId.startsWith('hikkake_plakama_step')) {
-      await interaction.deferUpdate();
-      const match = customId.match(/^hikkake_plakama_step(1|2)_(quest|tosu|horse)/);
-      if (!match) return false;
+    state.staff = state.staff || {};
+    state.staff[type] = state.staff[type] || {};
+    state.staff[type].pura = parseInt(puraCount, 10);
+    state.staff[type].kama = parseInt(kamaCount, 10);
+    await writeState(guildId, state);
+    await updateAllHikkakePanels(interaction.client, guildId, state);
+    return true;
+  }
 
-      const step = parseInt(match[1], 10);
-      const type = match[2];
+  // --- 人数選択メニューの処理 (プラ釜以外) ---
+  const step1Match = interaction.customId.match(/^hikkake_(order|arrival)_step1_(quest|tosu|horse)$/);
+  if (step1Match) {
+    await interaction.deferUpdate();
+    const [, command, type] = step1Match;
+    const guildId = interaction.guild.id;
+    const state = await readState(guildId);
+    const selectedValue = interaction.values[0];
 
-      if (step === 1) {
-        const puraCount = interaction.values[0];
-        const newCustomId = `hikkake_plakama_step2_${type}_${puraCount}`;
-        const row = createSelectMenuRow(newCustomId, 'カマの人数を選択 (1-25)', createNumericOptions(25, '人'));
-        await interaction.editReply({
-          content: `【${type.toUpperCase()}】プラ: ${puraCount}人。次にカマの人数を選択してください。`,
-          components: [row],
-        });
-      } else if (step === 2) {
-        const puraCount = parseInt(customId.split('_')[4], 10);
-        const kamaCount = parseInt(interaction.values[0], 10);
-        if (isNaN(puraCount) || isNaN(kamaCount)) {
-          return interaction.editReply({ content: 'エラー: 人数の解析に失敗しました。', components: [] });
-        }
+    state.orders = state.orders || { quest: [], tosu: [], horse: [] };
+    state.staff = state.staff || {};
+    state.staff[interaction.user.id] = state.staff[interaction.user.id] || { name: interaction.member.displayName, orders: [] };
 
-        const state = await readState(guildId);
-        state.staff[type].pura = puraCount;
-        state.staff[type].kama = kamaCount;
-        await writeState(guildId, state);
-        await updateAllHikkakePanels(client, guildId, state);
-        await logToThread(guildId, client, {
-          user: interaction.user,
-          logType: 'プラカマ設定',
-          details: { type, pura: puraCount, kama: kamaCount },
-          channelName: interaction.channel.name,
-        });
-        await interaction.editReply({
-          content: `✅ 【${type.toUpperCase()}】の基本スタッフを プラ: ${puraCount}人, カマ: ${kamaCount}人 に設定しました。`,
-          components: [],
-        });
-      }
-      return true;
+    const order = {
+      id: `${type}-${Date.now()}`,
+      type: command,
+      user: { id: interaction.user.id, username: interaction.user.username },
+      people: parseInt(selectedValue, 10),
+      bottles: 0,
+      joinTimestamp: DateTime.now().toISO(),
+      leaveTimestamp: null,
+    };
+
+    state.orders[type].push(order);
+    state.staff[interaction.user.id].orders.push(order.id);
+
+    await writeState(guildId, state);
+    await updateAllHikkakePanels(interaction.client, guildId, state);
+    return true;
+  }
+
+  // --- 同伴キャスト選択メニューの処理 ---
+  const douhanMatch = interaction.customId.match(/^hikkake_douhan_step1_user_(quest|tosu|horse)$/);
+  if (douhanMatch) {
+    const [, type] = douhanMatch;
+    const castUserId = interaction.values[0];
+
+    const modal = new ModalBuilder()
+      .setCustomId(`hikkake_douhan_submit_${type}_${castUserId}`)
+      .setTitle('同伴情報の入力');
+
+    const guestCountInput = new TextInputBuilder().setCustomId('guest_count').setLabel('お客様の人数').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('例: 2');
+    const durationInput = new TextInputBuilder().setCustomId('duration').setLabel('同伴時間（分）').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('例: 60');
+    const arrivalTimeInput = new TextInputBuilder().setCustomId('arrival_time').setLabel('お店への到着予定時間').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('例: 21:00');
+
+    modal.addComponents(
+      new ActionRowBuilder().addComponents(guestCountInput),
+      new ActionRowBuilder().addComponents(durationInput),
+      new ActionRowBuilder().addComponents(arrivalTimeInput)
+    );
+
+    await interaction.showModal(modal);
+    return true;
+  }
+
+  // --- ひっかけ予定の解決 (確定/失敗) ---
+  const resolveMatch = interaction.customId.match(/^hikkake_resolve_log_(confirm|fail)_(quest|tosu|horse)$/);
+  if (resolveMatch) {
+    await interaction.deferUpdate();
+    const [, status, type] = resolveMatch;
+    const orderId = interaction.values[0];
+    const guildId = interaction.guild.id;
+    const state = await readState(guildId);
+
+    const order = state.orders?.[type]?.find(o => o.id === orderId);
+    if (order) {
+      order.status = status; // 'confirmed' or 'failed'
+      order.leaveTimestamp = DateTime.now().toISO(); // 解決した時点で完了とみなす
+      await writeState(guildId, state);
+      await updateAllHikkakePanels(interaction.client, guildId, state);
     }
+    return true;
+  }
 
-    // --- Order 受注 ---
-    if (customId.startsWith('hikkake_order_step')) {
-      await interaction.deferUpdate();
-      const match = customId.match(/^hikkake_order_step(1|2|3)_(quest|tosu|horse)/);
-      if (!match) return false;
+  // --- ログの完了 (退店) ---
+  const retireMatch = interaction.customId.match(/^hikkake_retire_log_(quest|tosu|horse)$/);
+  if (retireMatch) {
+    await interaction.deferUpdate();
+    const [, type] = retireMatch;
+    const orderId = interaction.values[0];
+    const guildId = interaction.guild.id;
+    const state = await readState(guildId);
 
-      const step = parseInt(match[1], 10);
-      const type = match[2];
-
-      if (step === 1) {
-        const castPura = interaction.values[0];
-        const newCustomId = `hikkake_order_step2_${type}_${castPura}`;
-        const row = createSelectMenuRow(newCustomId, '担当カマの人数を選択 (0-24)', createNumericOptions(25, '人', 0));
-        await interaction.editReply({
-          content: `【${type.toUpperCase()}】担当プラ: ${castPura}人。次に担当したカマの人数を選択してください。`,
-          components: [row],
-        });
-      } else if (step === 2) {
-        const castPura = customId.split('_')[4];
-        const castKama = interaction.values[0];
-        const newCustomId = `hikkake_order_step3_${type}_${castPura}_${castKama}`;
-        const row = createSelectMenuRow(newCustomId, 'ボトルの本数を選択 (0-24)', createNumericOptions(25, '本', 0));
-        await interaction.editReply({
-          content: `【${type.toUpperCase()}】担当プラ: ${castPura}人, カマ: ${castKama}人。次にボトルの本数を選択してください。`,
-          components: [row],
-        });
-      } else if (step === 3) {
-        const parts = customId.split('_');
-        const castPura = parseInt(parts[4], 10);
-        const castKama = parseInt(parts[5], 10);
-        const bottles = parseInt(interaction.values[0], 10);
-
-        if ([castPura, castKama, bottles].some(isNaN)) {
-          return interaction.editReply({ content: 'エラー: 数値の解析に失敗しました。', components: [] });
-        }
-
-        const state = await readState(guildId);
-        const { allocatedPura, allocatedKama } = getActiveStaffAllocation(state, type);
-        const availablePura = (state.staff[type].pura || 0) - allocatedPura;
-        const availableKama = (state.staff[type].kama || 0) - allocatedKama;
-
-        if (castPura > availablePura || castKama > availableKama) {
-          return interaction.editReply({
-            content: `❌ スタッフが不足しています。\n現在利用可能 - プラ: ${availablePura}人, カマ: ${availableKama}人`,
-            components: [],
-          });
-        }
-
-        const newOrder = {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-          type: 'order',
-          people: castPura + castKama,
-          bottles,
-          castPura,
-          castKama,
-          timestamp: new Date().toISOString(),
-          user: { id: interaction.user.id, username: interaction.user.username },
-          logUrl: null,
-        };
-
-        const logMessage = await logToThread(guildId, client, {
-          user: interaction.user,
-          logType: '受注',
-          details: { type, ...newOrder },
-          channelName: interaction.channel.name,
-        });
-        if (logMessage) newOrder.logUrl = logMessage.url;
-
-        state.orders[type].push(newOrder);
-        await writeState(guildId, state);
-        await updateAllHikkakePanels(client, guildId, state);
-
-        const reactions = await readReactions(guildId);
-        const reactionParts = [
-          getRandomReaction(reactions, type, 'num', newOrder.people),
-          getRandomReaction(reactions, type, 'count', newOrder.bottles),
-        ].filter(Boolean);
-
-        await interaction.editReply({
-          content: `✅ 【${type.toUpperCase()}】受注を登録しました。\n${reactionParts.join(' ')}`,
-          components: [],
-        });
-      }
-      return true;
+    const order = state.orders?.[type]?.find(o => o.id === orderId);
+    if (order) {
+      order.leaveTimestamp = DateTime.now().toISO();
+      await writeState(guildId, state);
+      await updateAllHikkakePanels(interaction.client, guildId, state);
     }
+    return true;
+  }
 
-    // --- Douhan Flow ---
-    if (customId.startsWith('hikkake_douhan_step')) {
-        await interaction.deferUpdate();
-        const match = customId.match(/^hikkake_douhan_step(1_user|2_guests|3_duration)_(quest|tosu|horse)/);
-        const step = match[1];
-        const type = match[2];
-
-        if (step === '1_user') {
-            const selectedUserId = interaction.values[0];
-            const newCustomId = `hikkake_douhan_step2_guests_${type}_${selectedUserId}`;
-            const row = createSelectMenuRow(newCustomId, '客数を選択 (0-24)', createNumericOptions(25, '人', 0));
-            await interaction.editReply({ content: `キャスト <@${selectedUserId}> を選択しました。次にお客様の人数を選択してください。`, components: [row] });
-        } else if (step === '2_guests') {
-            const [, , , , , selectedUserId] = customId.split('_');
-            const guestCount = interaction.values[0];
-            const newCustomId = `hikkake_douhan_step3_duration_${type}_${selectedUserId}_${guestCount}`;
-            const durationOptions = Array.from({ length: 8 }, (_, i) => { const minutes = 30 * (i + 1); const h = Math.floor(minutes / 60); const m = minutes % 60; let l = ''; if (h > 0) l += `${h}時間`; if (m > 0) l += `${m}分`; return { label: l, value: String(minutes) }; });
-            const row = createSelectMenuRow(newCustomId, '同伴時間を選択', durationOptions);
-            await interaction.editReply({ content: `客数: ${guestCount}人。次に同伴時間を選択してください。`, components: [row] });
-        } else if (step === '3_duration') {
-            const [, , , , , selectedUserId, guestCount] = customId.split('_');
-            const duration = interaction.values[0];
-            const modal = new ModalBuilder().setCustomId(`hikkake_douhan_submit_${type}_${selectedUserId}_${guestCount}_${duration}`).setTitle('来店予定時間の入力');
-            const arrivalTimeInput = new TextInputBuilder().setCustomId('arrival_time').setLabel('来店予定時間').setStyle(TextInputStyle.Short).setPlaceholder('例: 21:30 or 2130').setRequired(true);
-            modal.addComponents(new ActionRowBuilder().addComponents(arrivalTimeInput));
-            await interaction.showModal(modal);
-        }
-        return true;
-    }
-
-    // --- Resolve/Fail Log ---
-    if (customId.startsWith('hikkake_resolve_log_')) {
-        await interaction.deferUpdate();
-        const [, , , action, type] = customId.split('_');
-        const logIdToResolve = interaction.values[0];
-        const state = await readState(guildId);
-        const logToUpdate = state.orders[type].find(log => log.id === logIdToResolve);
-        if (!logToUpdate) return interaction.editReply({ content: '❌ エラー: 対象のログが見つかりませんでした。', components: [] });
-
-        logToUpdate.status = action === 'confirm' ? 'confirmed' : 'failed';
-        logToUpdate.leaveTimestamp = new Date().toISOString();
-        await writeState(guildId, state);
-        await updateAllHikkakePanels(client, guildId, state);
-        const logType = action === 'confirm' ? 'ひっかけ確定' : 'ひっかけ失敗';
-        await logToThread(guildId, client, { user: interaction.user, logType, details: { type, resolvedLog: logToUpdate }, channelName: interaction.channel.name });
-        const replyMessage = action === 'confirm' ? '✅ 選択された「ひっかけ予定」を **確定** しました。' : '✅ 選択された「ひっかけ予定」を **失敗** として記録しました。';
-        await interaction.editReply({ content: `${replyMessage} 10分後に自動で削除されます。`, components: [] });
-        return true;
-    }
-
-    // --- Retire Log ---
-    if (customId.startsWith('hikkake_retire_log_')) {
-        await interaction.deferUpdate();
-        const type = customId.split('_')[3];
-        const logIdToRetire = interaction.values[0];
-        const state = await readState(guildId);
-        const logToUpdate = state.orders[type].find(log => log.id === logIdToRetire);
-        if (!logToUpdate) return interaction.editReply({ content: '❌ エラー: 対象のログが見つかりませんでした。', components: [] });
-
-        logToUpdate.leaveTimestamp = new Date().toISOString();
-        await writeState(guildId, state);
-        await updateAllHikkakePanels(client, guildId, state);
-        await logToThread(guildId, client, { user: interaction.user, logType: 'ログ退店', details: { type, retiredLog: logToUpdate }, channelName: interaction.channel.name });
-        await interaction.editReply({ content: '✅ 選択されたログを退店済みにしました。10分後に自動で削除されます。', components: [] });
-        return true;
-    }
-
-    // --- Delete Reaction ---
-    if (customId === 'hikkake_reaction_delete') {
-        await interaction.deferUpdate();
-        const [type, key, value, indexStr] = interaction.values[0].split(':');
-        const index = parseInt(indexStr, 10);
-        if (!type || !key || !value || isNaN(index)) return interaction.followUp({ content: 'エラー: 削除情報の解析に失敗しました。', flags: 64 });
-
-        const reactions = await readReactions(guildId);
-        const targetArray = reactions?.[type]?.[key]?.[value];
-        if (!targetArray) {
-  return interaction.followUp({ content: 'エラー: 削除対象が存在しません。', flags: 64 });
+  return false;
 }
 
-targetArray.splice(index, 1);
-await writeReactions(guildId, reactions);
-await updateAllHikkakePanels(client, guildId, await readState(guildId));
-await interaction.editReply({ content: '✅ 反応文を削除しました。', components: [] });
-
-return true;  }
-  },
-};
+module.exports = { execute };

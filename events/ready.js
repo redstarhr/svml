@@ -6,7 +6,7 @@ const { exec } = require('node:child_process');
 
 // hikkake_botのユーティリティ関数を読み込みます。
 // TODO: module-aliasを導入して '@bots/hikkake_bot/utils/hikkakePanelManager.js' のようなパスにリファクタリングすることを推奨します
-const { startLogCleanupInterval } = require('../hikkake_bot/utils/hikkakePanelManager.js');
+const { startLogCleanupInterval } = require('@root/hikkake_bot/utils/hikkakePanelManager.js');
 
 /**
  * Google Cloud Storageへの接続を確認します。

@@ -1,6 +1,6 @@
 // syuttaiki_bot/components/selects/arrival_time_delete_select.js
-const { readJSON, writeJSON } = require('../../../common/fileHelper');
-const { createOrUpdateCastShiftEmbed } = require('../../../uriage_bot/utils/syuttaikinPanelManager');
+const { readJSON, writeJSON } = require('@common/fileHelper');
+const { createOrUpdateCastShiftEmbed } = require('@root/uriage_bot/utils/syuttaikinPanelManager');
 const path = require('path');
 
 module.exports = {

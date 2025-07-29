@@ -1,14 +1,14 @@
 // utils/discordUtils.js
 
 const { StringSelectMenuBuilder, ActionRowBuilder, StringSelectMenuOptionBuilder } = require('discord.js');
-const { client } = require('../../client');
 
 /**
  * ギルドをキャッシュ優先で取得し、なければAPIからフェッチ
+ * @param {import('discord.js').Client} client
  * @param {string} guildId
  * @returns {Promise<import('discord.js').Guild|null>}
  */
-async function getGuild(guildId) {
+async function getGuild(client, guildId) {
   if (!client || !client.isReady()) {
     console.warn('[getGuild] clientが準備できていません。');
     return null;

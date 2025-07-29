@@ -1,5 +1,6 @@
 // index.js
 
+require('module-alias/register');
 require('dotenv').config();
 const fs = require('node:fs');
 const path = require('path');

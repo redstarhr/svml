@@ -1,11 +1,11 @@
 const { Events, MessageFlags } = require('discord.js');
 
 // 各機能のindex.jsからハンドラを読み込むことで、パスの変更に強くなります
-const { hikkakeHandler } = require('../hikkake_bot');
-const { uriageHandler } = require('../uriage_bot');
-const { syuttaikinHandler, castShiftHandler } = require('../syuttaiki_bot');
-const { keihiHandler } = require('../keihi_bot');
-const { levelHandler } = require('../level_bot');
+const { hikkakeHandler } = require('@root/hikkake_bot');
+const { uriageHandler } = require('@root/uriage_bot');
+const { syuttaikinHandler, castShiftHandler } = require('@root/syuttaiki_bot');
+const { keihiHandler } = require('@root/keihi_bot');
+const { levelHandler } = require('@root/level_bot');
 
 // この順番で処理を試みる
 const componentHandlers = [

@@ -2,7 +2,7 @@
 const { readState, writeState } = require('./hikkakeStateManager');
 const { updateAllHikkakePanels } = require('./hikkakePanelManager');
 const { createSelectMenuRow, createNumericOptions } = require('./discordUtils');
-const { StringSelectMenuOptionBuilder } = require('discord.js');
+const { StringSelectMenuOptionBuilder, MessageFlags } = require('discord.js');
 
 // Helper to find members with a specific role
 async function findMembersWithRole(guild, roleName) {
@@ -28,7 +28,7 @@ module.exports = {
         // --- Main Panel Buttons ---
         const panelButtonMatch = customId.match(/^hikkake_(quest|tosu|horse)_(plakama|order|arrival|douhan)$/);
         if (panelButtonMatch) {
-            await interaction.deferReply({ ephemeral: true });
+            await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
             const [, type, action] = panelButtonMatch;
 
             if (action === 'plakama') {
@@ -54,17 +54,21 @@ module.exports = {
         // --- Order Management Buttons ---
         const manageButtonMatch = customId.match(/^hikkake_(quest|tosu|horse)_(confirm|fail|leave)$/);
         if (manageButtonMatch) {
-            await interaction.deferReply({ ephemeral: true });
+            await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
             const [, type, action] = manageButtonMatch;
             const state = await readState(guildId);
+            
+            // 「確定」「失敗」は「ひっかけ予定」のみが対象。「退店」は全ての未完了ログが対象。
+            const targetOrders = action === 'leave'
+                ? state.orders[type]?.filter(o => !o.leaveTimestamp) || []
+                : state.orders[type]?.filter(o => o.type === 'order' && !o.status && !o.leaveTimestamp) || [];
 
-            const targetOrders = state.orders[type].filter(o => o.type === 'order' && !o.status && !o.leaveTimestamp);
             if (targetOrders.length === 0) {
-                return interaction.editReply({ content: '対象の「ひっかけ予定」ログが見つかりません。' });
+                return interaction.editReply({ content: '対象のログが見つかりません。' });
             }
 
             const options = targetOrders.map(order => new StringSelectMenuOptionBuilder()
-                .setLabel(`[${order.people}人/${order.bottles}本] by ${order.user.username}`)
+                .setLabel(`[${order.type}/${order.people}人] by ${order.user.username}`)
                 .setValue(order.id)
             ).slice(0, 25);
 

@@ -1,4 +1,5 @@
 // hikkake_bot/utils/hikkake_modal_handler.js
+const { MessageFlags } = require('discord.js');
 const { readState, writeState, getActiveStaffAllocation } = require('./hikkakeStateManager');
 const { updateAllHikkakePanels } = require('../utils/hikkakePanelManager');
 const { logToThread } = require('./threadLogger');
@@ -11,12 +12,12 @@ module.exports = {
         const { customId } = interaction;
 
         // --- Douhan Submission ---
-        const douhanMatch = customId.match(/^hikkake_douhan_submit_(quest|tosu|horse)_(\d+)_(\d+)_(\d+)/);
+        const douhanMatch = customId.match(/^hikkake_douhan_submit_(quest|tosu|horse)_(\d+)/);
         if (douhanMatch) {
-            await interaction.deferReply({ flags: 64 }); // Ephemeral
-            const [, type, castUserId, guestCountStr, durationStr] = douhanMatch;
-            const guestCount = parseInt(guestCountStr, 10);
-            const duration = parseInt(durationStr, 10);
+            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+            const [, type, castUserId] = douhanMatch;
+            const guestCount = parseInt(interaction.fields.getTextInputValue('guest_count'), 10);
+            const duration = parseInt(interaction.fields.getTextInputValue('duration'), 10);
             const arrivalTime = interaction.fields.getTextInputValue('arrival_time');
 
             const guildId = interaction.guildId;
@@ -26,7 +27,7 @@ module.exports = {
             const castKama = 0;
 
             const { allocatedPura } = getActiveStaffAllocation(state, type);
-            const availablePura = (state.staff[type].pura || 0) - allocatedPura;
+            const availablePura = (state.staff?.[type]?.pura || 0) - allocatedPura;
 
             if (castPura > availablePura) {
                 return interaction.editReply({ content: `❌ スタッフが不足しています。\n現在利用可能 - プラ: ${availablePura}人` });
@@ -58,7 +59,7 @@ module.exports = {
         // --- Reaction Submission ---
         const reactionMatch = customId.match(/^hikkake_reaction_submit_(quest|tosu|horse)_(num|count)$/);
         if (reactionMatch) {
-            await interaction.deferReply({ flags: 64 }); // Ephemeral
+            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
             const [, type, key] = reactionMatch;
             const targetValueRaw = interaction.fields.getTextInputValue('target_value');
             const newMessagesRaw = interaction.fields.getTextInputValue('reaction_messages');

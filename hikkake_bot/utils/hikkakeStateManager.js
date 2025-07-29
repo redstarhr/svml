@@ -1,80 +1,53 @@
-// hikkake_bot/commands/hikkakeReactionAdmin.js
+// hikkake_bot/utils/hikkakeStateManager.js
+const { readJsonFromGCS, saveJsonToGCS } = require('@common/gcs/gcsUtils');
 
-const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } = require('discord.js');
-const { readReactions } = require('../utils/hikkakeReactionManager');
+const HIKKAKE_STATE_PATH = (guildId) => `hikkake_bot/${guildId}/state.json`;
+
+/**
+ * Reads the state for a specific guild for the hikkake_bot.
+ * @param {string} guildId The ID of the guild.
+ * @returns {Promise<object|null>} The state object or null if not found.
+ */
+async function readState(guildId) {
+  const statePath = HIKKAKE_STATE_PATH(guildId);
+  return await readJsonFromGCS(statePath, {}); // Return empty object as fallback
+}
+
+/**
+ * Writes the state for a specific guild for the hikkake_bot.
+ * @param {string} guildId The ID of the guild.
+ * @param {object} state The state object to save.
+ * @returns {Promise<void>}
+ */
+async function writeState(guildId, state) {
+  const statePath = HIKKAKE_STATE_PATH(guildId);
+  await saveJsonToGCS(statePath, state);
+}
+
+/**
+ * 現在対応中のスタッフ数を計算します。
+ * @param {object} state 現在のサーバーの状態
+ * @param {string} type 注文の種類 ('quest', 'tosu', 'horse')
+ * @returns {{allocatedPura: number, allocatedKama: number}}
+ */
+function getActiveStaffAllocation(state, type) {
+  const allocations = { allocatedPura: 0, allocatedKama: 0 };
+  if (!state?.orders?.[type]) {
+    return allocations;
+  }
+
+  for (const order of state.orders[type]) {
+    // 対応が完了していない注文（statusやleaveTimestampがない）をアクティブとみなす
+    if (!order.status && !order.leaveTimestamp) {
+      allocations.allocatedPura += order.castPura || 0;
+      allocations.allocatedKama += order.castKama || 0;
+    }
+  }
+  return allocations;
+}
 
 module.exports = {
-  data: new SlashCommandBuilder()
-    .setName('hikkake_reaction_admin')
-    .setDescription('登録済みの反応文を一覧表示・削除します。')
-    .addStringOption(option =>
-      option.setName('category')
-        .setDescription('管理するカテゴリを選択')
-        .setRequired(true)
-        .addChoices(
-          { name: 'クエスト', value: 'quest' },
-          { name: '凸スナ', value: 'tosu' },
-          { name: 'トロイの木馬', value: 'horse' }
-        ))
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
-
-  async execute(interaction) {
-    await interaction.deferReply({ flags: 64 }); // Ephemeral
-
-    const type = interaction.options.getString('category');
-    const guildId = interaction.guildId;
-
-    const reactions = await readReactions(guildId);
-    const categoryReactions = reactions[type];
-
-    const embed = new EmbedBuilder()
-      .setTitle(`【${type.toUpperCase()}】登録済み反応文一覧`)
-      .setColor(0x00B0F4);
-
-    const options = [];
-    let description = '';
-
-    if (!categoryReactions || Object.keys(categoryReactions).length === 0) {
-      description = 'このカテゴリには反応文が登録されていません。';
-    } else {
-      for (const key of ['num', 'count']) {
-        const keyLabel = key === 'num' ? '人数' : '本数';
-        if (categoryReactions[key]) {
-          description += `**▼ ${keyLabel}別**\n`;
-          Object.entries(categoryReactions[key]).forEach(([value, messages]) => {
-            description += `**${value}**: \n`;
-            messages.forEach((msg, index) => {
-              description += `- ${msg}\n`;
-              options.push(
-                new StringSelectMenuOptionBuilder()
-                  .setLabel(`[${keyLabel}:${value}] ${msg.substring(0, 80)}`)
-                  .setValue(`${type}:${key}:${value}:${index}`)
-              );
-            });
-          });
-        }
-      }
-    }
-
-    embed.setDescription(description || 'このカテゴリには反応文が登録されていません。');
-
-    if (options.length > 0) {
-      const selectMenu = new StringSelectMenuBuilder()
-        .setCustomId('hikkake_reaction_delete')
-        .setPlaceholder('削除する反応文を選択...')
-        .addOptions(options.slice(0, 25)); // Max 25 options
-
-      const row = new ActionRowBuilder().addComponents(selectMenu);
-
-      await interaction.editReply({
-        embeds: [embed],
-        components: [row],
-      });
-    } else {
-      await interaction.editReply({
-        embeds: [embed],
-        components: [],
-      });
-    }
-  },
+  readState,
+  writeState,
+  getActiveStaffAllocation,
 };

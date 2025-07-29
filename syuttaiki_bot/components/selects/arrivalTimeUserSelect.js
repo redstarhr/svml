@@ -1,7 +1,7 @@
 // components/selects/arrivalTimeUserSelect.js
-const { readJSON, writeJSON } = require('../../../common/fileHelper');
-const { createOrUpdateCastShiftEmbed } = require('../../../uriage_bot/utils/syuttaikinPanelManager');
-const { sendSyukkaTaikinLog, formatSyukkaLog } = require('../../../uriage_bot/utils/syuttaikinLogger');
+const { readJSON, writeJSON } = require('@common/fileHelper');
+const { createOrUpdateCastShiftEmbed } = require('@root/uriage_bot/utils/syuttaikinPanelManager');
+const { sendSyukkaTaikinLog, formatSyukkaLog } = require('@root/uriage_bot/utils/syuttaikinLogger');
 const path = require('path');
 
 module.exports = {

@@ -9,7 +9,7 @@ const {
   RoleSelectMenuBuilder,
   MessageFlags,
 } = require('discord.js');
-const { readJsonFromGCS, saveJsonToGCS } = require('../../common/gcs/gcsUtils');
+const { readJsonFromGCS, saveJsonToGCS } = require('@common/gcs/gcsUtils');
 
 const CONFIG_PATH = (guildId) => `level_bot/${guildId}/config.json`;
 
