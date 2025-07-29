@@ -14,15 +14,11 @@ module.exports = {
     .setDescription('売上報告用のボタン付きメッセージを送信します'),
 
   async execute(interaction) {
-    // コマンド実行ログをターミナルに出力
-    console.log(`[${new Date().toISOString()}] コマンド「${interaction.commandName}」がユーザー「${interaction.user.tag}」によって実行されました。`);
-
-    // 応答を保留します（公開メッセージ）
     await interaction.deferReply(); // flags: 0 は不要
 
     const embed = new EmbedBuilder()
-      .setTitle('売上報告')
-      .setDescription('下のボタンから売上報告または報告の修正を行ってください。')
+      .setTitle('📊 売上報告')
+      .setDescription('下の「報告」ボタンを押して、本日の売上を入力してください。')
       .addFields(
         { name: '日付', value: '例 7/7', inline: true },
         { name: '総売り', value: '例 300,000', inline: true },
@@ -30,18 +26,14 @@ module.exports = {
         { name: 'カード', value: '例 150,000', inline: true },
         { name: '諸経費', value: '例 150,000', inline: true },
       )
-      .setColor(0x0099ff)
+      .setColor(0x3498DB) // A slightly nicer blue
       .setFooter({ text: 'SVML事務Bot' });
 
     const buttons = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setCustomId('sales_report')
-        .setLabel('売上報告')
-        .setStyle(ButtonStyle.Primary),
-      new ButtonBuilder()
-        .setCustomId('sales_report_edit')
-        .setLabel('報告を修正')
-        .setStyle(ButtonStyle.Secondary)
+        .setCustomId('show_sales_report_modal')
+        .setLabel('報告')
+        .setStyle(ButtonStyle.Primary)
     );
 
     // Embed とボタンを送信

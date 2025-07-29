@@ -10,7 +10,7 @@ const castSettings = require('./commands/cast-settings.js');
 
 // --- イベントハンドラ ---
 // interactionCreate.js から呼び出される
-const syuttaikinHandler = require('./handlers/syuttaikinHandler.js');
+const syuttaikinHandler = require('./handlers/syuttaikinHandler');
 const castSettingsHandler = require('./handlers/castSettingsHandler.js');
 
 module.exports = {

@@ -1,21 +1,33 @@
 const { Events, MessageFlags } = require('discord.js');
+const fs = require('node:fs');
+const path = require('node:path');
+const logger = require('@common/logger');
 
-// 各機能のindex.jsからハンドラを読み込むことで、パスの変更に強くなります
-const { hikkakeHandler } = require('@root/hikkake_bot');
-const { uriageHandler } = require('@root/uriage_bot');
-const { syuttaikinHandler, castShiftHandler } = require('@root/syuttaiki_bot');
-const { keihiHandler } = require('@root/keihi_bot');
-const { levelHandler } = require('@root/level_bot');
+// --- 各機能モジュールのハンドラを動的に読み込む ---
+function loadComponentHandlers() {
+  const handlers = [];
+  const featureDirs = fs.readdirSync(path.join(__dirname, '..'), { withFileTypes: true })
+    .filter(dirent => dirent.isDirectory() && dirent.name.endsWith('_bot'))
+    .map(dirent => dirent.name);
 
-// この順番で処理を試みる
-const componentHandlers = [
-    hikkakeHandler,
-    uriageHandler,
-    syuttaikinHandler,
-    castShiftHandler,
-    keihiHandler,
-    levelHandler,
-].filter(Boolean); // 未定義のハンドラを除外
+  for (const feature of featureDirs) {
+    const featureIndexPath = path.join(__dirname, '..', feature, 'index.js');
+    if (fs.existsSync(featureIndexPath)) {
+      try {
+        const featureModule = require(featureIndexPath);
+        if (featureModule.handlers && Array.isArray(featureModule.handlers)) {
+          handlers.push(...featureModule.handlers);
+        }
+      } catch (error) {
+        logger.error(`エラー: モジュール ${feature} からのハンドラ読み込みに失敗しました。`, { error });
+      }
+    }
+  }
+  return handlers;
+}
+
+const componentHandlers = loadComponentHandlers();
+logger.info(`✅ ${componentHandlers.length}個のコンポーネントハンドラを動的に読み込みました。`);
 
 module.exports = {
   name: Events.InteractionCreate,
@@ -30,7 +42,10 @@ module.exports = {
       if (interaction.isChatInputCommand()) {
         const command = client.commands.get(interaction.commandName);
         if (!command) {
-          console.error(`❌ コマンドが見つかりません: ${interaction.commandName}`);
+          logger.error(`不明なスラッシュコマンドを受信しました: ${interaction.commandName}`);
+          if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({ content: '不明なコマンドです。Botが更新された可能性があります。', ephemeral: true });
+          }
           return;
         }
         await command.execute(interaction, client);
@@ -39,16 +54,13 @@ module.exports = {
 
       // コマンド以外のインタラクション（ボタン、モーダル等）
       for (const handler of componentHandlers) {
-        // ハンドラが処理できたらtrueを返すので、そこでループを抜ける
         if (await handler.execute(interaction, client)) {
-          return;
+          return; // ハンドラが処理できたらtrueを返すので、そこでループを抜ける
         }
       }
     } catch (error) {
-      console.error(`❌ インタラクション処理中にエラーが発生しました (ID: ${interaction.customId || interaction.commandName}):`, error);
-
-      const errorMessage = { content: 'コマンドの実行中にエラーが発生しました。', flags: [MessageFlags.Ephemeral] };
-
+      logger.error(`インタラクション処理中にエラー (ID: ${interaction.customId || interaction.commandName})`, { error });
+      const errorMessage = { content: 'コマンドの実行中にエラーが発生しました。', ephemeral: true };
       try {
         if (interaction.replied || interaction.deferred) {
           await interaction.followUp(errorMessage);
@@ -56,7 +68,7 @@ module.exports = {
           await interaction.reply(errorMessage);
         }
       } catch (replyError) {
-        console.error('❌ エラーメッセージの返信に失敗しました:', replyError);
+        logger.error('エラーメッセージの返信に失敗しました。', { replyError });
       }
     }
   },

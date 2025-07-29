@@ -1,7 +1,6 @@
 // syuttaiki_bot/components/selects/arrival_time_delete_select.js
-const { readJSON, writeJSON } = require('@common/fileHelper');
+const { readState, writeState } = require('../../utils/syuttaikiStateManager');
 const { createOrUpdateCastShiftEmbed } = require('@root/uriage_bot/utils/syuttaikinPanelManager');
-const path = require('path');
 
 module.exports = {
   customId: 'arrival_time_delete_select',
@@ -10,10 +9,8 @@ module.exports = {
     const channelId = interaction.channel.id;
     const timeToDelete = interaction.values[0]; // The selected time to delete
 
-    const filePath = path.join('data-svml', guildId, `${guildId}.json`);
-
     // Read existing state
-    const state = await readJSON(filePath, {});
+    const state = await readState(guildId);
     if (!state.syuttaikin || !state.syuttaikin.arrivalTimes) {
       await interaction.update({ content: 'エラー: 削除対象のデータが見つかりませんでした。', components: [] });
       return;
@@ -29,7 +26,7 @@ module.exports = {
     }
 
     // Save the updated state
-    await writeJSON(filePath, state);
+    await writeState(guildId, state);
 
     // Update the embed
     await createOrUpdateCastShiftEmbed(interaction.guild, channelId, state);

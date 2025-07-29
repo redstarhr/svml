@@ -4,6 +4,7 @@ const { ChannelType } = require('discord.js');
 const { DateTime } = require('luxon');
 const { readState, writeState } = require('./hikkakeStateManager');
 const { buildPanelEmbed } = require('./panelBuilder');
+const logger = require('@common/logger');
 
 const LOG_CLEANUP_INTERVAL_MS = 60 * 1000; // 1 minute
 const LOG_RETENTION_MINUTES = 10; // 10 minutes
@@ -25,7 +26,7 @@ async function fetchMessageSafely(client, channelId, messageId) {
   } catch (error) {
     // Common errors: Unknown Channel (10003), Unknown Message (10008). These are expected if deleted.
     if (error.code !== 10003 && error.code !== 10008) {
-      console.error(`[PanelManager] Error fetching message ${messageId} in channel ${channelId}:`, error.message);
+      logger.error(`[PanelManager] メッセージ取得エラー (Channel: ${channelId}, Message: ${messageId}):`, { error: error.message });
     }
   }
   return null;
@@ -49,14 +50,14 @@ async function updateAllHikkakePanels(client, guildId, state) {
     const statusMessage = await fetchMessageSafely(client, panelInfo.channelId, panelInfo.statusMessageId);
     if (statusMessage) {
       const statusEmbed = buildPanelEmbed('status', type, currentState, guildId);
-      await statusMessage.edit({ embeds: [statusEmbed] }).catch(err => console.error(`[PanelManager] Status panel edit failed for ${type}:`, err.message));
+      await statusMessage.edit({ embeds: [statusEmbed] }).catch(err => logger.error(`[PanelManager] ステータスパネルの編集に失敗 (${type}):`, { error: err.message }));
     }
 
     // Update Orders Panel
     const ordersMessage = await fetchMessageSafely(client, panelInfo.channelId, panelInfo.ordersMessageId);
     if (ordersMessage) {
       const ordersEmbed = buildPanelEmbed('orders', type, currentState, guildId);
-      await ordersMessage.edit({ embeds: [ordersEmbed] }).catch(err => console.error(`[PanelManager] Orders panel edit failed for ${type}:`, err.message));
+      await ordersMessage.edit({ embeds: [ordersEmbed] }).catch(err => logger.error(`[PanelManager] 注文パネルの編集に失敗 (${type}):`, { error: err.message }));
     }
   }
 }
@@ -93,10 +94,10 @@ function startLogCleanupInterval(client) {
         if (stateWasModified) {
           await writeState(guild.id, state);
           await updateAllHikkakePanels(client, guild.id, state);
-          console.log(`[PanelManager] Cleaned up old logs for guild ${guild.name} (${guild.id})`);
+          logger.info(`[PanelManager] 古いログをクリーンアップしました (Guild: ${guild.name})`);
         }
       } catch (error) {
-        console.error(`[PanelManager] Error during log cleanup for guild ${guild.id}:`, error);
+        logger.error(`[PanelManager] ログのクリーンアップ中にエラーが発生しました (Guild: ${guild.id}):`, { error });
       }
     }
   }, LOG_CLEANUP_INTERVAL_MS);

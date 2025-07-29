@@ -1,14 +1,13 @@
 // utils/syuttaikinLogger.js
-続けてconst { readJSON, writeJSON } = require('@common/fileHelper');
+const { readState } = require('@root/syuttaiki_bot/utils/syuttaikiStateManager');
+const logger = require('@common/logger');
 
 async function sendSyukkaTaikinLog(guild, message) {
   try {
     const guildId = guild.id;
-    // GCS保存パス例
-    const filePath = `data-svml/${guildId}/${guildId}.json`;
-    const config = await readJSON(filePath);
+    const state = await readState(guildId);
 
-    const logChannelId = config?.syuttaikin?.logChannelId;
+    const logChannelId = state?.syuttaikin?.logChannelId;
     if (!logChannelId) return; // 通知ログ未設定
 
     const channel = await guild.channels.fetch(logChannelId);
@@ -16,7 +15,7 @@ async function sendSyukkaTaikinLog(guild, message) {
 
     await channel.send({ content: message });
   } catch (err) {
-    console.error('通知ログ送信エラー:', err);
+    logger.error('出退勤ログの送信に失敗しました。', { error: err });
   }
 }
 

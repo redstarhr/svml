@@ -58,6 +58,9 @@ module.exports = {
             const [, type, action] = manageButtonMatch;
             const state = await readState(guildId);
             
+            // Ensure the orders property exists to prevent crashes
+            state.orders = state.orders || { quest: [], tosu: [], horse: [] };
+
             // 「確定」「失敗」は「ひっかけ予定」のみが対象。「退店」は全ての未完了ログが対象。
             const targetOrders = action === 'leave'
                 ? state.orders[type]?.filter(o => !o.leaveTimestamp) || []

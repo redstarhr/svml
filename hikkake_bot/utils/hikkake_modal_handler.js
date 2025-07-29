@@ -12,12 +12,12 @@ module.exports = {
         const { customId } = interaction;
 
         // --- Douhan Submission ---
-        const douhanMatch = customId.match(/^hikkake_douhan_submit_(quest|tosu|horse)_(\d+)/);
+        const douhanMatch = customId.match(/^hikkake_douhan_submit_(quest|tosu|horse)_(\d+)_(\d+)_(\d+)/);
         if (douhanMatch) {
             await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-            const [, type, castUserId] = douhanMatch;
-            const guestCount = parseInt(interaction.fields.getTextInputValue('guest_count'), 10);
-            const duration = parseInt(interaction.fields.getTextInputValue('duration'), 10);
+            const [, type, castUserId, guestCountStr, durationStr] = douhanMatch;
+            const guestCount = parseInt(guestCountStr, 10);
+            const duration = parseInt(durationStr, 10);
             const arrivalTime = interaction.fields.getTextInputValue('arrival_time');
 
             const guildId = interaction.guildId;

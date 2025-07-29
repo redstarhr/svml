@@ -1,0 +1,14 @@
+# Git
+.git
+.gitignore
+
+# Node
+node_modules
+
+# Environment
+.env
+
+# Other
+*.md
+setup/
+setup.sh

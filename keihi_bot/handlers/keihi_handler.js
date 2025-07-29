@@ -1,31 +1,48 @@
 // keihi_bot/handlers/keihi_handler.js
-const { MessageFlags } = require('discord.js');
+const fs = require('node:fs');
+const path = require('node:path');
+const { Collection } = require('discord.js');
+const logger = require('@common/logger');
 
-// TODO: 経費Botの各コンポーネントハンドラを実装してインポートします
-// const buttonHandler = require('../components/buttons/...');
-// const modalHandler = require('../components/modals/...');
-// const selectHandler = require('../components/selects/...');
+// --- Dynamically load component handlers ---
+const componentHandlers = new Collection();
+const componentTypes = ['buttons', 'modals', 'selects'];
+
+for (const type of componentTypes) {
+  const componentPath = path.join(__dirname, '..', 'components', type);
+  if (!fs.existsSync(componentPath)) continue;
+
+  const componentFiles = fs.readdirSync(componentPath).filter(file => file.endsWith('.js'));
+  for (const file of componentFiles) {
+    const filePath = path.join(componentPath, file);
+    const handler = require(filePath);
+    if ('customId' in handler && 'handle' in handler) {
+      componentHandlers.set(handler.customId, handler);
+    } else {
+      logger.warn(`[KeihiHandler] 警告: コンポーネントハンドラ ${filePath} に 'customId' または 'handle' がありません。`);
+    }
+  }
+}
 
 module.exports = {
   /**
-   * keihi_bot関連のインタラクションを適切なハンドラに振り分ける
+   * Dispatches keihi_bot related interactions to the appropriate component handler.
    * @param {import('discord.js').Interaction} interaction
-   * @returns {Promise<boolean>} 処理した場合はtrue、しなかった場合はfalse
+   * @returns {Promise<boolean>} True if the interaction was handled, false otherwise.
    */
   async execute(interaction) {
-    // このハンドラは 'keihi_' で始まる customId のみを処理します
     if (!interaction.customId || !interaction.customId.startsWith('keihi_')) {
       return false;
     }
 
-    // TODO: ここにボタン、モーダル、セレクトメニューなどの具体的な処理を実装します
-    // 例: if (interaction.customId === 'keihi_submit_button') { ... }
+    // Find a handler that matches the customId prefix
+    const handler = componentHandlers.find((_, key) => interaction.customId.startsWith(key));
 
-    console.warn(`[keihi_handler] Interaction received but no specific handler implemented for: ${interaction.customId}`);
-    // 該当する処理がない場合は、エラーメッセージを返信してtrueを返すことで、他のハンドラでの処理を防ぎます
-    if (interaction.isRepliable()) {
-        await interaction.reply({ content: 'この機能は現在実装中です。', flags: [MessageFlags.Ephemeral] });
+    if (handler) {
+      await handler.handle(interaction);
+      return true;
     }
-    return true; // このインタラクションは keihi_bot が処理したとマーク
+
+    return false; // No handler found for this customId
   }
 };

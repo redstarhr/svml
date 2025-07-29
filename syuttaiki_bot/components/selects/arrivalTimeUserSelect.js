@@ -1,8 +1,7 @@
 // components/selects/arrivalTimeUserSelect.js
-const { readJSON, writeJSON } = require('@common/fileHelper');
+const { readState, writeState } = require('../../utils/syuttaikiStateManager');
 const { createOrUpdateCastShiftEmbed } = require('@root/uriage_bot/utils/syuttaikinPanelManager');
 const { sendSyukkaTaikinLog, formatSyukkaLog } = require('@root/uriage_bot/utils/syuttaikinLogger');
-const path = require('path');
 
 module.exports = {
   customId: 'arrival_time_user_select',
@@ -16,16 +15,8 @@ module.exports = {
     // 日付を yyyy-mm-dd 形式で取得
     const date = new Date().toISOString().slice(0, 10);
 
-    // GCS上の保存先パス例
-    const filePath = path.join('data-svml', guildId, `${guildId}.json`);
-
     // 既存状態の読み込み
-    let state;
-    try {
-      state = await readJSON(filePath);
-    } catch {
-      state = {};
-    }
+    const state = await readState(guildId);
     state.syuttaikin = state.syuttaikin || {};
     state.syuttaikin.arrivals = state.syuttaikin.arrivals || {};
 
@@ -41,7 +32,7 @@ module.exports = {
     });
 
     // 保存
-    await writeJSON(filePath, state);
+    await writeState(guildId, state);
 
     // embed更新
     await createOrUpdateCastShiftEmbed(interaction.guild, channelId, state);

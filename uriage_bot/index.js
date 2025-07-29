@@ -10,13 +10,11 @@ const uriageHoukoku = require('./commands/uriage_houkoku.js');
 const uriageCsv = require('./commands/uriage_csv.js');
 
 // --- イベントハンドラ ---
-const uriageHandler = require('./handler/uriage_handler.js');
+const handler = require('./uriage_handler.js');
 
 module.exports = {
-  // コマンド
-  uriageConfig,
-  uriageHoukoku,
-  uriageCsv,
-  // ハンドラ
-  uriageHandler,
+  // コマンドの配列
+  commands: [uriageConfig, uriageHoukoku, uriageCsv],
+  // interactionCreate.jsが期待する配列形式でハンドラをエクスポート
+  handlers: [handler].filter(Boolean),
 };

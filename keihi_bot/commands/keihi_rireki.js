@@ -1,46 +1,53 @@
-// commands/keihi_rireki/index.js
-const {
-  SlashCommandBuilder,
-  StringSelectMenuBuilder,
-  StringSelectMenuOptionBuilder,
-  ActionRowBuilder
-} = require('discord.js');
-const { getAvailableExpenseFiles } = require('../../keihi_bot/utils/fileStorage.js');
+// keihi_bot/commands/keihi_rireki.js
+const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
+const { readState } = require('../utils/keihiStateManager');
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('経費申請履歴')
-    .setDescription('過去の経費申請履歴を月ごとに選択して表示'),
-
+    .setName('keihi-rireki')
+    .setDescription('提出された経費の履歴を確認し、承認または拒否します。')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   async execute(interaction) {
-    const guildId = interaction.guildId;
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    const yearMonths = getAvailableExpenseFiles(guildId);
-    if (!yearMonths.length) {
-      return interaction.reply({
-        content: '📭 表示できる履歴がまだありません。',
-        flags: 64
-      });
+    const guildId = interaction.guild.id;
+    const state = await readState(guildId);
+
+    const pendingExpenses = state.expenses.filter(e => e.status === 'pending');
+
+    if (pendingExpenses.length === 0) {
+      return interaction.editReply({ content: '現在、承認待ちの経費申請はありません。' });
     }
 
-    const options = yearMonths
-      .sort().reverse()
-      .map(ym => new StringSelectMenuOptionBuilder().setLabel(ym).setValue(ym));
+    const embeds = [];
+    const components = [];
 
-    const menu = new StringSelectMenuBuilder()
-      .setCustomId('history_year_month')
-      .setPlaceholder('履歴を確認したい月を選んでください')
-      .setMinValues(1)
-      .setMaxValues(Math.min(12, options.length)) // ✅ 最大12件まで選択可能
-      .addOptions(options);
+    for (const expense of pendingExpenses.slice(0, 10)) { // Show up to 10 at a time
+      const user = await interaction.client.users.fetch(expense.userId).catch(() => null);
+      const embed = new EmbedBuilder()
+        .setTitle('経費申請の確認')
+        .setColor(0xFFD700) // Gold
+        .addFields(
+          { name: '申請者', value: user ? `${user.tag} (${user.id})` : expense.userName, inline: true },
+          { name: '申請日時', value: new Date(expense.submittedAt).toLocaleString('ja-JP'), inline: true },
+          { name: '金額', value: `${expense.amount.toLocaleString()}円`, inline: false },
+          { name: '内容', value: expense.description, inline: false }
+        )
+        .setFooter({ text: `経費ID: ${expense.id}` });
 
-    const row = new ActionRowBuilder().addComponents(menu);
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(`keihi_approve_${expense.id}`).setLabel('承認').setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId(`keihi_reject_${expense.id}`).setLabel('拒否').setStyle(ButtonStyle.Danger)
+      );
 
-    await interaction.reply({
-      content: '📆 表示したい履歴の月を選んでください（最大12件まで）',
-      components: [row],
-      flags: 64
+      embeds.push(embed);
+      components.push(row);
+    }
+
+    await interaction.editReply({
+      content: `承認待ちの経費申請が ${pendingExpenses.length} 件あります。`,
+      embeds,
+      components,
     });
-  }
+  },
 };
-

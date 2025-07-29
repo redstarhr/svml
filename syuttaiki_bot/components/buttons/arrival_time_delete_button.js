@@ -1,21 +1,13 @@
 // components/buttons/arrival_time_delete_button.js
 const { ActionRowBuilder, StringSelectMenuBuilder, MessageFlags } = require('discord.js');
-const { readJSON } = require('@common/fileHelper');
-const path = require('path');
+const { readState } = require('../../utils/syuttaikiStateManager');
 
 module.exports = {
   customId: 'arrival_time_delete_button',
   async handle(interaction) {
     const guildId = interaction.guild.id;
-    const filePath = path.join('data-svml', guildId, `${guildId}.json`);
-
-    let data;
-    try {
-      data = await readJSON(filePath);
-    } catch {
-      data = {};
-    }
-    const arrivalTimes = data.syuttaikin?.arrivalTimes || [];
+    const state = await readState(guildId);
+    const arrivalTimes = state.syuttaikin?.arrivalTimes || [];
 
     if (arrivalTimes.length === 0) {
       await interaction.reply({ content: '削除可能な出勤時間がありません。', flags: [MessageFlags.Ephemeral] });

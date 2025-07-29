@@ -1,55 +1,54 @@
 // devcmd.js
 require('dotenv').config();
+require('module-alias/register');
 const fs = require('node:fs');
 const path = require('node:path');
 const { REST } = require('@discordjs/rest');
 const { Routes } = require('discord.js');
+const logger = require('@common/logger');
 
 // --- 必須環境変数チェック ---
 const { DISCORD_TOKEN, CLIENT_ID, GUILD_ID } = process.env;
 if (!DISCORD_TOKEN || !CLIENT_ID || !GUILD_ID) {
-  console.error('❌ 致命的エラー: DISCORD_TOKEN, CLIENT_ID, GUILD_ID のいずれかが .env に設定されていません。');
+  logger.error('❌ 致命的エラー: 開発デプロイには DISCORD_TOKEN, CLIENT_ID, GUILD_ID を .env に設定する必要があります。');
   process.exit(1);
 }
 
 const commands = [];
-const commandNames = new Map();
+const commandNames = new Map(); // Use Map to store feature name for better error reporting
 
-// --- コマンドデータの読み込み ---
+// --- コマンドデータの読み込み (index.jsとロジックを統一) ---
 const featureDirs = fs.readdirSync(__dirname, { withFileTypes: true })
   .filter(dirent => dirent.isDirectory() && dirent.name.endsWith('_bot'))
   .map(dirent => dirent.name);
 
-console.log(`[DEV-DEPLOY] 🔍 ${featureDirs.length}個の機能ディレクトリを検出: ${featureDirs.join(', ')}`);
+logger.info(`[DevDeploy] 🔍 ${featureDirs.length}個の機能ディレクトリを検出: ${featureDirs.join(', ')}`);
 for (const feature of featureDirs) {
-    const commandsPath = path.join(__dirname, feature, 'commands');
-    if (!fs.existsSync(commandsPath)) {
-      continue;
-    }
-    // commandsディレクトリ直下の.jsファイルのみを読み込む（再帰しない）
-    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-    for (const file of commandFiles) {
-        const filePath = path.join(commandsPath, file);
-        try {
-            const command = require(filePath);
-            if ('data' in command && 'execute' in command) {
-                const commandName = command.data.name;
-                if (commandNames.has(commandName)) { // 重複を検出
-                    // 競合している両方のファイルパスを出力
-                    console.error(`[DEV-DEPLOY] ❌ 重複エラー: コマンド名 "${commandName}" が競合しています。`);
-                    console.error(`    --> 既存: ${commandNames.get(commandName)}`);
-                    console.error(`    --> 新規: ${filePath}`);
-                    continue;
-                }
-                commandNames.set(commandName, filePath);
-                commands.push(command.data.toJSON());
-            } else {
-                console.warn(`[DEV-DEPLOY] ⚠️  [警告] ${filePath} のコマンドは 'data' または 'execute' が不足しています。`);
+  const featureIndexPath = path.join(__dirname, feature, 'index.js');
+  if (fs.existsSync(featureIndexPath)) {
+    try {
+      const featureModule = require(featureIndexPath);
+      if (featureModule.commands && Array.isArray(featureModule.commands)) {
+        for (const command of featureModule.commands) {
+          if ('data' in command && 'execute' in command) {
+            const commandName = command.data.name;
+            if (commandNames.has(commandName)) {
+              logger.error(`[DevDeploy] ❌ 重複エラー: コマンド名 "${commandName}" が検出されました。`);
+              logger.error(`    --> 既存のモジュール: ${commandNames.get(commandName)}`);
+              logger.error(`    --> 競合するモジュール: ${feature}`);
+              continue;
             }
-        } catch (error) {
-            console.error(`[DEV-DEPLOY] ❌ コマンドファイルの読み込みに失敗: ${filePath}`, error);
+            commandNames.set(commandName, feature);
+            commands.push(command.data.toJSON());
+          } else {
+            logger.warn(`[DevDeploy] 警告: モジュール ${feature} のコマンドオブジェクトに 'data' または 'execute' がありません。`);
+          }
         }
+      }
+    } catch (error) {
+      logger.error(`[DevDeploy] ❌ エラー: モジュール ${feature} からのコマンド読み込みに失敗しました。`, { error });
     }
+  }
 }
 
 // --- RESTインスタンスの作成とコマンドの登録 ---
@@ -57,10 +56,10 @@ const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
 
 (async () => {
   try {
-    console.log(`[DEV-DEPLOY] 🚀 ${commands.length} 個のアプリケーションコマンドを開発サーバーに登録開始...`);
+    logger.info(`[DevDeploy] 🚀 ${commands.length}個のアプリケーションコマンドを開発サーバーに登録しています...`);
     const data = await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), { body: commands });
-    console.log(`[DEV-DEPLOY] ✅ ${data.length} 個のコマンドを開発サーバー (ID: ${GUILD_ID}) に正常に登録しました。`);
+    logger.info(`[DevDeploy] ✅ ${data.length}個のコマンドをサーバー(ID: ${GUILD_ID})に正常に登録しました。`);
   } catch (error) {
-    console.error('[DEV-DEPLOY] ❌ コマンドの登録中にエラーが発生しました:', error);
+    logger.error('[DevDeploy] ❌ コマンドの登録中にエラーが発生しました:', { error });
   }
 })();

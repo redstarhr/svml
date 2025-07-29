@@ -3,10 +3,12 @@ const { Events } = require('discord.js');
 const { Storage } = require('@google-cloud/storage');
 const path = require('path');
 const { exec } = require('node:child_process');
+const logger = require('@common/logger');
 
 // hikkake_botのユーティリティ関数を読み込みます。
 // TODO: module-aliasを導入して '@bots/hikkake_bot/utils/hikkakePanelManager.js' のようなパスにリファクタリングすることを推奨します
 const { startLogCleanupInterval } = require('@root/hikkake_bot/utils/hikkakePanelManager.js');
+const { scheduleDailyPanelTask } = require('@root/syuttaiki_bot/tasks/dailyPanelTask');
 
 /**
  * Google Cloud Storageへの接続を確認します。
@@ -15,7 +17,7 @@ const { startLogCleanupInterval } = require('@root/hikkake_bot/utils/hikkakePane
 async function checkGcsConnection() {
   const bucketName = process.env.GCS_BUCKET_NAME;
   if (!bucketName) {
-    console.warn('⚠️  環境変数 GCS_BUCKET_NAME が設定されていません。GCS接続確認をスキップします。');
+    logger.warn('GCS_BUCKET_NAMEが設定されていません。GCS接続確認をスキップします。');
     return;
   }
 
@@ -23,21 +25,18 @@ async function checkGcsConnection() {
     const storage = new Storage();
     const [exists] = await storage.bucket(bucketName).exists();
     if (exists) {
-      console.log(`✅ GCSバケット「${bucketName}」への接続を確認しました。`);
+      logger.info(`✅ GCSバケット「${bucketName}」への接続を確認しました。`);
     } else {
-      console.error(`❌ GCSバケット「${bucketName}」が見つかりません。`);
-      console.error('   ヒント: .envファイルのGCS_BUCKET_NAMEが正しいか、Google Cloudプロジェクトの設定を確認してください。');
+      logger.error(`❌ GCSバケット「${bucketName}」が見つかりません。`);
+      logger.error('   ヒント: .envのGCS_BUCKET_NAMEが正しいか、Google Cloudプロジェクトの設定を確認してください。');
     }
   } catch (error) {
-    console.error(`❌ GCSバケット「${bucketName}」への接続に失敗しました。`);
-    console.error('   エラー詳細:', error.message);
+    logger.error(`❌ GCSバケット「${bucketName}」への接続に失敗しました。`, { error: error.message });
     // Cloud Runで実行されているかどうかに応じて、ヒントを出し分ける
     if (process.env.K_SERVICE) {
-      console.error('   ヒント (Cloud Run): Cloud Runサービスに紐付けられたサービスアカウントに、');
-      console.error(`   GCSバケット「${bucketName}」へのアクセス権限（例: ストレージオブジェクト管理者）が付与されているか確認してください。`);
+      logger.error('   ヒント (Cloud Run): Cloud Runサービスに紐付けられたサービスアカウントに、GCSバケットへのアクセス権限（例: ストレージオブジェクト管理者）が付与されているか確認してください。');
     } else {
-      console.error('   ヒント (ローカル環境): GOOGLE_APPLICATION_CREDENTIALS環境変数が正しく設定されているか、');
-      console.error('   サービスアカウントキーに適切な権限が付与されているか確認してください。');
+      logger.error('   ヒント (ローカル環境): GOOGLE_APPLICATION_CREDENTIALS環境変数が正しく設定されているか、サービスアカウントキーに適切な権限が付与されているか確認してください。');
     }
   }
 }
@@ -52,7 +51,7 @@ function deployDevCommands() {
     return;
   }
 
-  console.log('[READY-EVENT] 開発環境を検出しました。コマンドを自動登録します...');
+  logger.info('[ReadyEvent] 開発環境を検出しました。コマンドを自動登録します...');
   const deployProcess = exec('node devcmd.js');
 
   deployProcess.stdout.on('data', (data) => {
@@ -64,7 +63,7 @@ function deployDevCommands() {
   });
 
   deployProcess.on('close', (code) => {
-    console.log(`[READY-EVENT] コマンド登録プロセスがコード ${code} で終了しました。`);
+    logger.info(`[ReadyEvent] コマンド登録プロセスがコード ${code} で終了しました。`);
   });
 }
 
@@ -73,15 +72,14 @@ function deployDevCommands() {
  * @param {import('discord.js').Client} client
  */
 function logBotInfo(client) {
-  console.log('------------------------------------------------------');
-  console.log(`✅ Botの準備が完了しました。`);
-  console.log(`   ログインアカウント: ${client.user.tag}`);
+  logger.info('------------------------------------------------------');
+  logger.info(`✅ Botの準備が完了しました。ログインアカウント: ${client.user.tag}`);
 
   const guilds = client.guilds.cache;
   const totalUsers = guilds.reduce((acc, guild) => acc + guild.memberCount, 0);
 
-  console.log(`   接続サーバー数: ${guilds.size} サーバー`);
-  console.log(`   総ユーザー数: ${totalUsers} ユーザー`);
+  logger.info(`   接続サーバー数: ${guilds.size}`);
+  logger.info(`   総ユーザー数: ${totalUsers}`);
 }
 
 module.exports = {
@@ -100,9 +98,11 @@ module.exports = {
       deployDevCommands(), // 開発環境の場合のみ実行される
     ]);
 
-    console.log('------------------------------------------------------');
+    logger.info('------------------------------------------------------');
     // 定期実行タスクの開始
     startLogCleanupInterval(client);
-    console.log('✅ 定期的なログクリーンアップ処理を開始しました。');
+    logger.info('✅ 定期的なログクリーンアップ処理を開始しました。');
+    scheduleDailyPanelTask(client);
+    logger.info('✅ 出退勤パネルの自動投稿タスクをスケジュールしました。');
   },
 };

@@ -1,6 +1,7 @@
 // utils/discordUtils.js
 
 const { StringSelectMenuBuilder, ActionRowBuilder, StringSelectMenuOptionBuilder } = require('discord.js');
+const logger = require('@common/logger');
 
 /**
  * ギルドをキャッシュ優先で取得し、なければAPIからフェッチ
@@ -9,10 +10,7 @@ const { StringSelectMenuBuilder, ActionRowBuilder, StringSelectMenuOptionBuilder
  * @returns {Promise<import('discord.js').Guild|null>}
  */
 async function getGuild(client, guildId) {
-  if (!client || !client.isReady()) {
-    console.warn('[getGuild] clientが準備できていません。');
-    return null;
-  }
+  if (!client || !client.isReady()) return null;
 
   try {
     // キャッシュにあれば即返す
@@ -23,7 +21,7 @@ async function getGuild(client, guildId) {
     const fetchedGuild = await client.guilds.fetch(guildId);
     return fetchedGuild ?? null;
   } catch (error) {
-    console.warn(`[getGuild] Failed to fetch guild (${guildId}): ${error.message}`);
+    logger.warn(`[getGuild] ギルドの取得に失敗しました (${guildId}): ${error.message}`);
     return null;
   }
 }

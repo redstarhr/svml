@@ -6,17 +6,23 @@ const fs = require('node:fs');
 const path = require('path');
 const { Collection, Events } = require('discord.js');
 const { client } = require('./client');
+const logger = require('@common/logger');
 
 // --- 必須環境変数チェック ---
-const requiredEnv = ['DISCORD_TOKEN', 'CLIENT_ID', 'GUILD_ID'];
+const requiredEnv = ['DISCORD_TOKEN', 'CLIENT_ID'];
 for (const envVar of requiredEnv) {
   if (!process.env[envVar]) {
-    console.error(`❌ 致命的エラー: 環境変数 ${envVar} が .env に設定されていません。`);
+    logger.error(`❌ 致命的エラー: 環境変数 ${envVar} が .env に設定されていません。`);
     process.exit(1);
   }
 }
+// 開発環境ではGUILD_IDも必須
+if (process.env.NODE_ENV === 'development' && !process.env.GUILD_ID) {
+    logger.error(`❌ 致命的エラー: 開発環境では環境変数 GUILD_ID が .env に設定されている必要があります。`);
+    process.exit(1);
+}
 
-console.log('Google Credentials Path:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
+logger.info(`Google認証情報を使用中: ${process.env.GOOGLE_APPLICATION_CREDENTIALS}`);
 
 // --- コマンドハンドラの読み込み ---
 client.commands = new Collection();
@@ -25,35 +31,32 @@ const featureDirs = fs.readdirSync(__dirname, { withFileTypes: true })
   .filter(dirent => dirent.isDirectory() && dirent.name.endsWith('_bot'))
   .map(dirent => dirent.name);
 
-console.log(`🔍 ${featureDirs.length}個の機能ディレクトリを検出: ${featureDirs.join(', ')}`);
+logger.info(`🔍 ${featureDirs.length}個の機能ディレクトリを検出: ${featureDirs.join(', ')}`);
 for (const feature of featureDirs) {
-    const commandsPath = path.join(__dirname, feature, 'commands');
-    if (!fs.existsSync(commandsPath)) {
-      continue;
-    }
-    // commandsディレクトリ直下の.jsファイルのみを読み込む（再帰しない）
-    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-    for (const file of commandFiles) {
-        const filePath = path.join(commandsPath, file);
-        try {
-            const command = require(filePath);
-            if ('data' in command && 'execute' in command) {
-                const commandName = command.data.name;
-                if (client.commands.has(commandName)) {
-                    // 重複するコマンド名を検出した場合、エラーを出力してスキップ
-                    console.error(`❌ 重複エラー: コマンド名 "${commandName}" (${filePath}) は既に読み込まれています。上書きはしません。`);
-                    continue;
-                }
-                client.commands.set(commandName, command);
-            } else {
-                console.warn(`⚠️  [警告] ${filePath} のコマンドは 'data' または 'execute' が不足しています。`);
+  const featureIndexPath = path.join(__dirname, feature, 'index.js');
+  if (fs.existsSync(featureIndexPath)) {
+    try {
+      const featureModule = require(featureIndexPath);
+      if (featureModule.commands && Array.isArray(featureModule.commands)) {
+        for (const command of featureModule.commands) {
+          if ('data' in command && 'execute' in command) {
+            const commandName = command.data.name;
+            if (client.commands.has(commandName)) {
+              logger.error(`❌ 重複エラー: コマンド名 "${commandName}" が検出されました。モジュール "${feature}" からのバージョンはスキップされます。`);
+              continue;
             }
-        } catch (error) {
-            console.error(`❌ コマンドファイルの読み込みに失敗: ${filePath}`, error);
+            client.commands.set(commandName, command);
+          } else {
+            logger.warn(`警告: モジュール ${feature} のコマンドオブジェクトに 'data' または 'execute' がありません。`);
+          }
         }
+      }
+    } catch (error) {
+      logger.error(`エラー: モジュール ${feature} からのコマンド読み込みに失敗しました。`, { error });
     }
+  }
 }
-console.log(`✅ ${client.commands.size} 個のコマンドを読み込みました。`);
+logger.info(`✅ ${client.commands.size}個のスラッシュコマンドを正常に読み込みました。`);
 
 // --- イベントハンドラの読み込み ---
 const eventsPath = path.join(__dirname, 'events');
@@ -68,7 +71,7 @@ for (const file of eventFiles) {
     client.on(event.name, (...args) => event.execute(...args, client));
   }
 }
-console.log(`✅ ${eventFiles.length} 個のイベントハンドラを読み込みました。`);
+logger.info(`✅ ${eventFiles.length}個のイベントハンドラを正常に読み込みました。`);
 
 // --- Discord Bot ログイン ---
 client.login(process.env.DISCORD_TOKEN);
