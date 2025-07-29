@@ -1,40 +1,23 @@
 #!/bin/bash
 
+# このスクリプトは、ローカルの開発環境を最新の状態に更新するためのものです。
+# 本番環境 (Google Cloud Run) の更新は、コンテナイメージの再ビルドと再デプロイによって行われます。
+
 set -e
 
-echo "🟡 タイムゾーンを Asia/Tokyo に設定..."
-sudo timedatectl set-timezone Asia/Tokyo
+echo "🟡 Gitリポジトリを最新の状態に更新します..."
+git pull origin main
 
-echo "🟡 SSH 鍵が存在するか確認..."
-if [ ! -f ~/.ssh/id_rsa ]; then
-  echo "🔐 SSH 鍵を作成中..."
-  ssh-keygen -t rsa -b 4096 -C "star.vesta.legion.kanri@gmail.com" -N "" -f ~/.ssh/id_rsa
-else
-  echo "🔐 SSH 鍵は既に存在しています。"
-fi
+echo "🟡 依存関係を更新します..."
+npm install --no-audit --no-fund
 
-echo "🟡 svml_zimu_bot ディレクトリの作成と移動..."
-mkdir -p ~/svml_zimu_bot
-cd ~/svml_zimu_bot
+echo "🟡 スラッシュコマンドを更新します..."
+# 本番環境用のコマンドを登録
+npm run deploy
 
-if [ ! -d ".git" ]; then
-  echo "🟡 Git リポジトリを SSH 経由でクローン中..."
-  git clone git@github.com:star-discord/svml_zimu_bot.git .
-else
-  echo "🟡 既に Git リポジトリが存在します。リモートに合わせてローカルを強制更新します..."
-  git fetch origin
-  git reset --hard origin/main
-  git clean -fd
-fi
+# 開発環境用のコマンドを登録する場合は、以下のコメントを解除してください
+# npm run dev:deploy
 
-echo "🟡 update.sh に管理者権限を付与..."
-chmod +x update.sh
-
-echo "🟡 npm install を実行..."
-npm install
-
-echo "🟡 コマンドを更新（開発）"
-node devcmd.js
-
-echo "✅ 更新完了！"
-echo "コンテナイメージを再ビルドして、Google Cloud Run にデプロイしてください。"
+echo "✅ ローカル開発環境の更新が完了しました！"
+echo "本番環境に反映するには、変更をコミット＆プッシュし、"
+echo "Google Cloud Runで新しいリビジョンをデプロイしてください。"

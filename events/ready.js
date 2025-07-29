@@ -5,7 +5,7 @@ const path = require('path');
 
 // hikkake_botのユーティリティ関数を読み込みます。
 // __dirname (eventsフォルダ) から一つ上の階層に移動してファイルを探します。
-const { startLogCleanupInterval } = require(path.join(__dirname, '..', 'utils', 'hikkakePanelManager.js'));
+const { startLogCleanupInterval } = require(path.join(__dirname, '..', 'hikkake_bot', 'utils', 'hikkakePanelManager.js'));
 
 /**
  * Google Cloud Storageへの接続を確認します。

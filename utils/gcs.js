@@ -11,7 +11,7 @@ if (!bucketName) {
 
 /**
  * GCSにJSONデータを保存する
- * @param {string} filePath - GCS上の保存先パス
+ * @param {string} filePath - GCS上の保存先パス（例: data/hikkake_bot/guildId/filename.json）
  * @param {object} data - 保存するJSONオブジェクト
  * @throws ファイル保存に失敗した場合は例外をスローします
  */
@@ -57,7 +57,7 @@ async function readJsonFromGCS(filePath) {
 
 /**
  * 特定のprefixにマッチするファイル一覧を取得
- * @param {string} prefix - ファイルパスの先頭部分
+ * @param {string} prefix - ファイルパスの先頭部分（例: data/hikkake_bot/guildId/）
  * @returns {Promise<Array>} - 該当するファイルオブジェクトの配列
  * @throws ファイル一覧取得に失敗した場合は例外をスローします
  */
@@ -80,17 +80,29 @@ async function listFilesInGCS(prefix) {
 async function copyGCSFile(sourcePath, destinationPath) {
   try {
     const bucket = storage.bucket(bucketName);
-    const sourceFile = bucket.file(sourcePath);
-    const destinationFile = bucket.file(destinationPath);
-
-    const [exists] = await sourceFile.exists();
-    if (exists) {
-      await sourceFile.copy(destinationFile);
-      console.log(`[GCS] 🔄 ${sourcePath} を ${destinationPath} にコピーしました。`);
-    }
+    await bucket.file(sourcePath).copy(bucket.file(destinationPath));
+    console.log(`[GCS] 🔄 ${sourcePath} を ${destinationPath} にコピーしました。`);
   } catch (error) {
     console.error(`❌ GCSファイルコピーエラー: ${sourcePath} -> ${destinationPath}`, error);
     throw error;
+  }
+}
+
+/**
+ * GCS上のファイルを削除する
+ * @param {string} filePath - 削除対象ファイルのGCSパス
+ * @throws ファイル削除に失敗した場合は例外をスローします
+ */
+async function deleteGCSFile(filePath) {
+  try {
+    await storage.bucket(bucketName).file(filePath).delete();
+    console.log(`[GCS] 🗑️ ${filePath} を削除しました。`);
+  } catch (error) {
+    // ファイルが存在しないエラー(code: 404)は無視して良い場合が多い
+    if (error.code !== 404) {
+      console.error(`❌ GCSファイル削除エラー: ${filePath}`, error);
+      throw error;
+    }
   }
 }
 
@@ -99,4 +111,5 @@ module.exports = {
   readJsonFromGCS,
   listFilesInGCS,
   copyGCSFile,
+  deleteGCSFile,
 };

@@ -1,27 +1,21 @@
 // hikkake_bot/index.js
 
 /**
- * hikkake_botのユーティリティモジュールまとめ読み込み
+ * hikkake_botのコマンドとイベントハンドラモジュールをまとめてエクスポートします。
+ * これにより、Botのメインファイルから各機能を一元的に管理しやすくなります。
  */
 
-const hikkakeModals = require('./utils/hikkake_modals');
-const hikkakeButtons = require('./utils/hikkake_buttons');
-const hikkakeSelects = require('./utils/hikkake_selects');
-const hikkakeSetup = require('./commands/hikkakeSetup');
-const hikkakeStateManager = require('./utils/hikkakeStateManager');
-const hikkakePanelManager = require('./utils/hikkakePanelManager');
-const hikkakeReactionFetcher = require('./utils/hikkakeReactionFetcher');
-const hikkakeThreadLogger = require('./utils/threadLogger');
+// --- コマンド ---
+const hikkakeReactionAdmin = require('./commands/hikkakeReactionAdmin.js');
+const hikkakeSetting = require('./commands/hikkakeSetting.js');
+const hikkakeSetup = require('./commands/hikkakeSetup.js');
 
-/**
- * エクスポートするモジュールを集約
- * 他の場所から簡単にインポートできるようにする
- */
+// --- イベントハンドラ ---
+const hikkakeHandler = require('./handlers/hikkake_handler.js');
+
 module.exports = {
-  hikkakeModals,
-  hikkakeButtons,
-  hikkakeSelects,
+  hikkakeReactionAdmin,
+  hikkakeSetting,
   hikkakeSetup,
-  hikkakeStateManager,
-  hikkakePanelManager,
+  hikkakeHandler,
 };

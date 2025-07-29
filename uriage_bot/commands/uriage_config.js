@@ -7,7 +7,7 @@ const {
     PermissionFlagsBits,
     EmbedBuilder,
 } = require('discord.js');
-const { readJsonFromGCS, saveJsonToGCS } = require('../../uriage_bot/utils/gcs');
+const { readJsonFromGCS, saveJsonToGCS } = require('../../common/gcs/gcsUtils');
 
 const SETTINGS_FILE_PATH = (guildId) => `data/${guildId}/${guildId}.json`;
 
@@ -52,57 +52,10 @@ async function execute(interaction) {
     });
 }
 
-// ロール選択メニューの操作を処理
-async function handleRoleSelectMenu(interaction) {
-    if (interaction.customId !== 'select_approval_roles') {
-        return false;
-    }
-
-    await interaction.deferUpdate();
-
-    const guildId = interaction.guildId;
-    const selectedRoleIds = interaction.values;
-    const settingsPath = SETTINGS_FILE_PATH(guildId);
-
-    try {
-        const currentSettings = await readJsonFromGCS(settingsPath) || {};
-        const newSettings = {
-            ...currentSettings,
-            approvalRoleIds: selectedRoleIds,
-        };
-
-        await saveJsonToGCS(settingsPath, newSettings);
-
-        const embed = new EmbedBuilder()
-            .setTitle('✅ 設定完了')
-            .setColor(0x57F287);
-
-        if (selectedRoleIds.length > 0) {
-            const roleMentions = selectedRoleIds.map(id => `<@&${id}>`).join(', ');
-            embed.setDescription(`売上報告の承認ロールを以下に設定しました。\n${roleMentions}`);
-        } else {
-            embed.setDescription('売上報告の承認ロールをすべて解除しました。');
-        }
-
-        await interaction.editReply({ embeds: [embed], components: [] });
-
-    } catch (error) {
-        console.error('❌ 承認ロール設定の保存中にエラー:', error);
-        await interaction.editReply({
-            content: 'エラーが発生し、設定を保存できませんでした。',
-            embeds: [],
-            components: []
-        });
-    }
-
-    return true;
-}
-
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('売上報告設定')
         .setDescription('売上報告を承認できるロールを設定します。')
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
     execute,
-    handleRoleSelectMenu,
 };

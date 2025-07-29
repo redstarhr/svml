@@ -3,7 +3,6 @@ const { readJsonFromGCS, saveJsonToGCS, deleteGCSFile } = require('../../../util
 const { parseAndValidateReportData } = require('../../../utils/salesReportUtils');
 
 module.exports = {
-  // customIdが 'edit_sales_report_modal_' で始まるインタラクションにマッチ
   customId: /^edit_sales_report_modal_(\d{4}-\d{2}-\d{2})_(\d+)$/,
   async execute(interaction) {
     const match = interaction.customId.match(this.customId);
@@ -13,10 +12,9 @@ module.exports = {
     if (error) { return interaction.reply({ content: error, ephemeral: true }); }
     const { normalizedDate, totalNum, cashNum, cardNum, expenseNum, balance } = data;
 
-    // --- 新しいEmbedを作成 ---
     const embed = new EmbedBuilder()
       .setTitle('📈 売上報告 (修正済み)')
-      .setColor(0xffa500) // オレンジ色で修正を表現
+      .setColor(0xffa500)
       .setDescription(`${interaction.user} さんによって修正されました。`)
       .addFields(
         { name: '日付', value: normalizedDate, inline: true },
@@ -29,15 +27,13 @@ module.exports = {
       .setTimestamp()
       .setFooter({ text: `修正者: ${interaction.user.username}` });
 
-    // --- customIdを更新した新しいボタンを作成 ---
     const newButtons = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setCustomId('sales_report') // これは新規報告用パネルのボタンID
+        .setCustomId('sales_report')
         .setLabel('次の売上を報告')
         .setStyle(ButtonStyle.Success)
     );
 
-    // --- GCSとDiscordメッセージの更新処理 ---
     const guildId = interaction.guildId;
     const originalFilePath = `data/sales_reports/${guildId}/uriage-houkoku-${originalDate}-${userId}.json`;
     const newFilePath = `data/sales_reports/${guildId}/uriage-houkoku-${normalizedDate}-${userId}.json`;
@@ -63,4 +59,17 @@ module.exports = {
       }
       newContent = newContent.replace(/✅『承認 \(\d+\/\d+\)』/, '⚠️『修正済・再承認待ち』');
 
-      await messageToEdit.edit
+      await messageToEdit.edit({
+        content: newContent,
+        embeds: [embed],
+        components: [newButtons]
+      });
+
+      await interaction.reply({ content: '✅ 報告を正常に修正しました。', ephemeral: true });
+
+    } catch (error) {
+      console.error('❌ 売上報告の修正中にエラー:', error);
+      return interaction.reply({ content: 'エラーが発生し、報告を修正できませんでした。', ephemeral: true });
+    }
+  },
+};

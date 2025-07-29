@@ -1,18 +1,20 @@
 # 環境変数ファイル
 .env
-.env.sample
 
 # npmのパッケージロックファイル
 node_modules
 
 # データフォルダを無視
+# keihi_botなどがローカルに生成するデータ
 data/
-
-# git関係のファイルをアップデートしない設定
-.git/
 
 # gemini-chatgptをアップロードしない設定
 gemini-chatgpt/
 
 # ログファイル
-uriage_bot/logs/
+**/logs/
+*.log
+
+# IDE/Editor specific
+.vscode/
+.idea/

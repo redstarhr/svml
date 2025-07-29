@@ -1,7 +1,6 @@
 // hikkake_bot/utils/hikkakeStateManager.js
 
 const { readJsonFromGCS, saveJsonToGCS } = require('../../utils/gcs');
-const path = require('path');
 
 const basePath = 'hikkake';     // フォルダ構成: hikkake/<GUILD_ID>/state.json
 
@@ -26,6 +25,11 @@ function getDefaultState() {
       tosu: [],
       horse: [],
     },
+    activeMembers: {
+      quest: [], // { id: string, name: string, enterTimestamp: string }
+      tosu: [],
+      horse: [],
+    },
     hikkakeLogThreads: {
       quest: {}, // { 'YYYYMM': 'threadId' }
       tosu: {},
@@ -40,6 +44,7 @@ function ensureStateStructure(state) {
   if (!state.panelMessages) state.panelMessages = {};
   if (!state.staff) state.staff = {};
   if (!state.orders) state.orders = {};
+  if (!state.activeMembers) state.activeMembers = { quest: [], tosu: [], horse: [] };
   if (!state.hikkakeLogThreads || !state.hikkakeLogThreads.quest) { // Check for old structure
     state.hikkakeLogThreads = { quest: {}, tosu: {}, horse: {} };
   }
@@ -50,6 +55,7 @@ function ensureStateStructure(state) {
     }
     if (!state.staff[type]) state.staff[type] = { pura: 0, kama: 0 };
     if (!Array.isArray(state.orders[type])) state.orders[type] = [];
+    if (!Array.isArray(state.activeMembers[type])) state.activeMembers[type] = [];
     if (!state.hikkakeLogThreads[type]) state.hikkakeLogThreads[type] = {};
   }
 
@@ -68,6 +74,12 @@ function ensureStateStructure(state) {
     delete state.hikkakeLogChannelId;
     delete state.logChannels;
     delete state.logs; // Old thread ID structure is also deprecated
+  }
+
+  // --- Data Migration: Convert old `members` to new `activeMembers` ---
+  if (state.members) {
+    state.activeMembers = { ...state.activeMembers, ...state.members };
+    delete state.members;
   }
 
   return state;

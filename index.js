@@ -60,5 +60,20 @@ for (const feature of featureDirs) {
 }
 console.log(`✅ ${client.commands.size} 個のコマンドを読み込みました。`);
 
+// --- イベントハンドラの読み込み ---
+const eventsPath = path.join(__dirname, 'events');
+const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
+
+for (const file of eventFiles) {
+  const filePath = path.join(eventsPath, file);
+  const event = require(filePath);
+  if (event.once) {
+    client.once(event.name, (...args) => event.execute(...args, client));
+  } else {
+    client.on(event.name, (...args) => event.execute(...args, client));
+  }
+}
+console.log(`✅ ${eventFiles.length}個のイベントハンドラを読み込みました。`);
+
 // --- Discord Bot ログイン ---
 client.login(process.env.DISCORD_TOKEN);
