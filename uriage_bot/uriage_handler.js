@@ -16,7 +16,7 @@ const { readJsonFromGCS, saveJsonToGCS, listFilesInGCS } = require('../common/gc
 const { DateTime } = require('luxon');
 const logger = require('@common/logger');
 
-const SETTINGS_FILE_PATH = (guildId) => `data/${guildId}/uriage/config.json`;
+const SETTINGS_FILE_PATH = (guildId) => `data-svml/${guildId}/uriage/config.json`;
 
 /**
  * ロール選択メニューの操作を処理
@@ -84,7 +84,7 @@ async function handleCsvExportMonthlyButton(interaction) {
     const guildId = interaction.guildId;
 
     try {
-        const prefix = `data/${guildId}/`;
+        const prefix = `data-svml/${guildId}/`;
         const allReportFiles = await listFilesInGCS(prefix);
 
         const yearMonths = new Set();
@@ -139,7 +139,7 @@ async function handleCsvSelectMonth(interaction) {
     try {
         let filesSent = 0;
         for (const month of selectedMonths) {
-            const prefix = `data/${guildId}/uriagehoukoku_${month}-`;
+            const prefix = `data-svml/${guildId}/uriagehoukoku_${month}-`;
             const monthReportFiles = await listFilesInGCS(prefix);
 
             if (monthReportFiles.length === 0) {
@@ -307,7 +307,7 @@ async function handleModalSubmit(interaction) {
             reportedAt: DateTime.now().toISO(),
         };
 
-        const dataPath = `data/${guildId}/uriagehoukoku_${dateForFilename}.json`;
+        const dataPath = `data-svml/${guildId}/uriagehoukoku_${dateForFilename}.json`;
 
         // 既存データがあればバックアップ
         try {
@@ -408,7 +408,7 @@ async function handleApproval(interaction, isApproved) {
 
     // customIdから日付を抽出
     const dateForFilename = interaction.customId.split('_').pop();
-    const dataPath = `data/${guildId}/uriagehoukoku_${dateForFilename}.json`;
+    const dataPath = `data-svml/${guildId}/uriagehoukoku_${dateForFilename}.json`;
 
     try {
         const reportData = await readJsonFromGCS(dataPath);
@@ -556,7 +556,7 @@ async function handleEditSalesReport(interaction) {
     const salesDateStr = dateMatch[1];
     const salesDate = DateTime.fromFormat(salesDateStr, 'M/d', { zone: 'Asia/Tokyo' }).set({ year: DateTime.now().year });
     const dateForFilename = salesDate.toFormat('yyyy-MM-dd');
-    const dataPath = `data/${interaction.guildId}/uriagehoukoku_${dateForFilename}.json`;
+    const dataPath = `data-svml/${interaction.guildId}/uriagehoukoku_${dateForFilename}.json`;
 
     try {
         const existingData = await readJsonFromGCS(dataPath);

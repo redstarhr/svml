@@ -28,25 +28,24 @@ module.exports = {
         // --- Main Panel Buttons ---
         const panelButtonMatch = customId.match(/^hikkake_(quest|tosu|horse)_(plakama|order|arrival|douhan)$/);
         if (panelButtonMatch) {
-            await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
             const [, type, action] = panelButtonMatch;
 
             if (action === 'plakama') {
                 const row = createSelectMenuRow(`hikkake_plakama_step1_${type}`, 'プラの人数を選択 (1-25)', createNumericOptions(25, '人'));
-                await interaction.editReply({ content: `【${type.toUpperCase()}】の基本スタッフ数を設定します。まずプラの人数を選択してください。`, components: [row] });
+                await interaction.reply({ content: `【${type.toUpperCase()}】の基本スタッフ数を設定します。まずプラの人数を選択してください。`, components: [row], flags: [MessageFlags.Ephemeral] });
             } else if (action === 'order') {
-                const row = createSelectMenuRow(`hikkake_order_step1_${type}`, '担当プラの人数を選択 (1-25)', createNumericOptions(25, '人'));
-                await interaction.editReply({ content: `【${type.toUpperCase()}】でひっかけました。担当したプラの人数を選択してください。`, components: [row] });
+                const row = createSelectMenuRow(`hikkake_order_guest_count_${type}`, 'お客様の人数を選択 (1-25)', createNumericOptions(25, '人'));
+                await interaction.reply({ content: `【${type.toUpperCase()}】でひっかけました。まずお客様の人数を選択してください。`, components: [row], flags: [MessageFlags.Ephemeral] });
             } else if (action === 'arrival') {
-                const row = createSelectMenuRow(`hikkake_arrival_step1_${type}`, '担当プラの人数を選択 (0-24)', createNumericOptions(25, '人', 0));
-                await interaction.editReply({ content: `【${type.toUpperCase()}】にお客様がふらっと来ました。担当したプラの人数を選択してください。`, components: [row] });
+                const row = createSelectMenuRow(`hikkake_arrival_guest_count_${type}`, 'お客様の人数を選択 (1-25)', createNumericOptions(25, '人'));
+                await interaction.reply({ content: `【${type.toUpperCase()}】にお客様がふらっと来ました。まずお客様の人数を選択してください。`, components: [row], flags: [MessageFlags.Ephemeral] });
             } else if (action === 'douhan') {
                 const castOptions = await findMembersWithRole(guild, 'キャスト'); // Assuming a 'キャスト' role exists
                 if (castOptions.length === 0) {
-                    return interaction.editReply({ content: '同伴可能なキャストが見つかりませんでした。「キャスト」ロールを確認してください。' });
+                    return interaction.reply({ content: '同伴可能なキャストが見つかりませんでした。「キャスト」ロールを確認してください。', flags: [MessageFlags.Ephemeral] });
                 }
                 const row = createSelectMenuRow(`hikkake_douhan_step1_user_${type}`, '同伴するキャストを選択', castOptions);
-                await interaction.editReply({ content: '同伴するキャストを選択してください。', components: [row] });
+                await interaction.reply({ content: '同伴するキャストを選択してください。', components: [row], flags: [MessageFlags.Ephemeral] });
             }
             return true;
         }
@@ -54,7 +53,6 @@ module.exports = {
         // --- Order Management Buttons ---
         const manageButtonMatch = customId.match(/^hikkake_(quest|tosu|horse)_(confirm|fail|leave)$/);
         if (manageButtonMatch) {
-            await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
             const [, type, action] = manageButtonMatch;
             const state = await readState(guildId);
             
@@ -67,7 +65,7 @@ module.exports = {
                 : state.orders[type]?.filter(o => o.type === 'order' && !o.status && !o.leaveTimestamp) || [];
 
             if (targetOrders.length === 0) {
-                return interaction.editReply({ content: '対象のログが見つかりません。' });
+                return interaction.reply({ content: '対象のログが見つかりません。', flags: [MessageFlags.Ephemeral] });
             }
 
             const options = targetOrders.map(order => new StringSelectMenuOptionBuilder()
@@ -82,7 +80,7 @@ module.exports = {
             };
             const { customId: selectCustomId, placeholder } = actionMap[action];
             const row = createSelectMenuRow(selectCustomId, placeholder, options);
-            await interaction.editReply({ components: [row] });
+            await interaction.reply({ components: [row], flags: [MessageFlags.Ephemeral] });
             return true;
         }
 

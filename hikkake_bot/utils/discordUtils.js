@@ -46,7 +46,9 @@ function createSelectMenuRow(customId, placeholder, options) {
  * @returns {StringSelectMenuOptionBuilder[]}
  */
 function createNumericOptions(count, unit, start = 1) {
-    return Array.from({ length: count }, (_, i) => {
+    // Discordのセレクトメニューは最大25個の選択肢しか持てないため、上限を設定
+    const safeCount = Math.min(count, 25);
+    return Array.from({ length: safeCount }, (_, i) => {
         const value = i + start;
         return new StringSelectMenuOptionBuilder().setLabel(`${value}${unit}`).setValue(String(value));
     });

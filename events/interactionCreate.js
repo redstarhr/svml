@@ -15,11 +15,12 @@ function loadComponentHandlers() {
     if (fs.existsSync(featureIndexPath)) {
       try {
         const featureModule = require(featureIndexPath);
-        if (featureModule.handlers && Array.isArray(featureModule.handlers)) {
-          handlers.push(...featureModule.handlers);
+        // 'componentHandlers' 配列のみを探索
+        if (featureModule.componentHandlers && Array.isArray(featureModule.componentHandlers)) {
+          handlers.push(...featureModule.componentHandlers);
         }
       } catch (error) {
-        logger.error(`エラー: モジュール ${feature} からのハンドラ読み込みに失敗しました。`, { error });
+        logger.error(`エラー: モジュール ${feature} からのコンポーネントハンドラ読み込みに失敗しました。`, { error });
       }
     }
   }
@@ -37,6 +38,16 @@ module.exports = {
    * @param {import('discord.js').Client} client
    */
   async execute(interaction, client) {
+    // --- インタラクションのログ出力 ---
+    if (interaction.isButton()) {
+        logger.info(`[Interaction] ボタン受信: ${interaction.customId}`);
+    } else if (interaction.isAnySelectMenu()) {
+        logger.info(`[Interaction] セレクトメニュー受信: ${interaction.customId} (選択値: ${interaction.values.join(', ')})`);
+    } else if (interaction.isModalSubmit()) {
+        logger.info(`[Interaction] モーダル受信: ${interaction.customId}`);
+    }
+    // ------------------------------------
+
     try {
       // スラッシュコマンドの処理
       if (interaction.isChatInputCommand()) {

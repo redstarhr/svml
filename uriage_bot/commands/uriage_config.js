@@ -10,7 +10,7 @@ const {
 const { readJsonFromGCS } = require('../../common/gcs/gcsUtils');
 const logger = require('@common/logger');
 
-const SETTINGS_FILE_PATH = (guildId) => `data/${guildId}/uriage/config.json`;
+const SETTINGS_FILE_PATH = (guildId) => `data-svml/${guildId}/uriage/config.json`;
 
 // コマンド実行時の処理
 async function execute(interaction) {

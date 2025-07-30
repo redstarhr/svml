@@ -113,7 +113,7 @@ module.exports = {
                 const selectedDate = interaction.values[0];
                 const guildId = interaction.guildId;
                 const userId = interaction.user.id;
-                const filePath = `data/sales_reports/${guildId}/uriage-houkoku-${selectedDate}-${userId}.json`;
+                const filePath = `data/${guildId}/sales_reports/uriage-houkoku-${selectedDate}-${userId}.json`;
 
                 const reportData = await readJsonFromGCS(filePath);
 

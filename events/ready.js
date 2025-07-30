@@ -8,7 +8,7 @@ const logger = require('@common/logger');
 // hikkake_botのユーティリティ関数を読み込みます。
 // TODO: module-aliasを導入して '@bots/hikkake_bot/utils/hikkakePanelManager.js' のようなパスにリファクタリングすることを推奨します
 const { startLogCleanupInterval } = require('@root/hikkake_bot/utils/hikkakePanelManager.js');
-const { scheduleDailyPanelTask } = require('@root/syuttaiki_bot/tasks/dailyPanelTask');
+const { scheduleDailyPanelTask } = require('@root/syuttaikin_bot/tasks/dailyPanelTask');
 
 /**
  * Google Cloud Storageへの接続を確認します。

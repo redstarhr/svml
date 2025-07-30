@@ -3,7 +3,7 @@ const { MessageFlags } = require('discord.js');
 const { readState, writeState, getActiveStaffAllocation } = require('./hikkakeStateManager');
 const { updateAllHikkakePanels } = require('../utils/hikkakePanelManager');
 const { logToThread } = require('./threadLogger');
-const { readReactions, writeReactions } = require('./hikkakeReactionManager');
+const { logHikkakeEvent } = require('./hikkakeCsvLogger');
 
 module.exports = {
     async execute(interaction) {
@@ -12,12 +12,12 @@ module.exports = {
         const { customId } = interaction;
 
         // --- Douhan Submission ---
-        const douhanMatch = customId.match(/^hikkake_douhan_submit_(quest|tosu|horse)_(\d+)_(\d+)_(\d+)/);
+        const douhanMatch = customId.match(/^hikkake_douhan_submit_(quest|tosu|horse)_(\d+)$/);
         if (douhanMatch) {
             await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-            const [, type, castUserId, guestCountStr, durationStr] = douhanMatch;
-            const guestCount = parseInt(guestCountStr, 10);
-            const duration = parseInt(durationStr, 10);
+            const [, type, castUserId] = douhanMatch;
+            const guestCount = parseInt(interaction.fields.getTextInputValue('guest_count'), 10);
+            const duration = parseInt(interaction.fields.getTextInputValue('duration'), 10);
             const arrivalTime = interaction.fields.getTextInputValue('arrival_time');
 
             const guildId = interaction.guildId;
@@ -51,6 +51,17 @@ module.exports = {
 
             state.orders[type].push(newLog);
             await writeState(guildId, state);
+            await logHikkakeEvent(guildId, {
+                type: 'douhan',
+                user: interaction.user,
+                details: {
+                    store: type,
+                    castUserId: castUserId,
+                    guestCount: guestCount,
+                    duration: duration,
+                    arrivalTime: arrivalTime
+                }
+            });
             await updateAllHikkakePanels(interaction.client, guildId, state);
             await interaction.editReply({ content: '✅ 同伴情報を記録しました。' });
             return true;

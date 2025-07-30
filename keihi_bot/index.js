@@ -12,6 +12,6 @@ const keihiHandler = require('./handlers/keihi_handler.js');
 module.exports = {
   // Standardized export for slash commands
   commands: [keihiConfig, keihiEmbed, keihiRireki, keihiSetti].filter(Boolean),
-  // Standardized export for component handlers
-  handlers: [keihiHandler].filter(Boolean),
+  // コンポーネント操作を処理するハンドラ
+  componentHandlers: [keihiHandler].filter(Boolean),
 };

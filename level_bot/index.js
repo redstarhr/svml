@@ -1,16 +1,14 @@
 // level_bot/index.js
-/**
- * level_botのコマンドとイベントハンドラモジュールをまとめてエクスポートします。
- */
 
 // --- Commands ---
-const levelConfig = require('./commands/level-config');
-const levelCheck = require('./commands/level-check');
+const levelConfig = require('./commands/level-config.js');
 
 // --- イベントハンドラ ---
-const levelHandler = require('./handlers/level_handler.js');
+const componentHandler = require('./handlers/componentHandler.js');
+const messageCreateHandler = require('./handlers/messageCreateHandler.js');
 
 module.exports = {
-  commands: [levelConfig, levelCheck].filter(Boolean),
-  handlers: [levelHandler],
+  commands: [levelConfig].filter(Boolean),
+  componentHandlers: [componentHandler].filter(Boolean),
+  messageHandlers: [messageCreateHandler].filter(Boolean),
 };

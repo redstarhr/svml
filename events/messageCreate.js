@@ -14,11 +14,12 @@ function loadMessageHandlers() {
     if (fs.existsSync(featureIndexPath)) {
       try {
         const featureModule = require(featureIndexPath);
-        if (featureModule.handlers && Array.isArray(featureModule.handlers)) {
-          handlers.push(...featureModule.handlers);
+        // 'messageHandlers' 配列のみを探索
+        if (featureModule.messageHandlers && Array.isArray(featureModule.messageHandlers)) {
+          handlers.push(...featureModule.messageHandlers);
         }
       } catch (error) {
-        logger.error(`エラー: モジュール ${feature} からのハンドラ読み込みに失敗しました。`, { error });
+        logger.error(`エラー: モジュール ${feature} からのメッセージハンドラ読み込みに失敗しました。`, { error });
       }
     }
   }
@@ -26,16 +27,14 @@ function loadMessageHandlers() {
 }
 
 const messageHandlers = loadMessageHandlers();
+logger.info(`✅ ${messageHandlers.length}個のメッセージハンドラを動的に読み込みました。`);
 
 module.exports = {
   name: Events.MessageCreate,
   async execute(message) {
-    // 現状はlevel_handlerのみが対象だが、将来的な拡張のためにループ処理にしておく
     for (const handler of messageHandlers) {
-      // messageCreateを処理するハンドラはinteractionを引数に取らないので、直接messageを渡す
-      if (handler.execute.length === 1) { // 引数がmessageのみのハンドラを対象
-        await handler.execute(message).catch(err => logger.error(`MessageCreateハンドラ実行中にエラー`, { error: err }));
-      }
+      // These are guaranteed to be message handlers now
+      await handler.execute(message).catch(err => logger.error(`MessageCreateハンドラ実行中にエラー`, { error: err }));
     }
   },
 };
