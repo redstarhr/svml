@@ -1,9 +1,9 @@
 // hikkake_bot/handlers/hikkake_handler.js
 
 const logger = require('@common/logger');
-const buttonHandler = require('../utils/hikkake_button_handler');
-const modalHandler = require('../utils/hikkake_modal_handler');
-const selectHandler = require('../utils/hikkake_select_handler');
+const buttonHandler = require('@root/hikkake_bot/utils/hikkake_button_handler');
+const modalHandler = require('@root/hikkake_bot/utils/hikkake_modal_handler');
+const selectHandler = require('@root/hikkake_bot/utils/hikkake_select_handler');
 
 module.exports = {
   /**

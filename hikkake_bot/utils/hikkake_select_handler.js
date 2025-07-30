@@ -1,10 +1,10 @@
 // hikkake_bot/utils/hikkake_select_handler.js
-const { readState, writeState, getActiveStaffAllocation } = require('./hikkakeStateManager');
-const { updateAllHikkakePanels } = require('./hikkakePanelManager');
+const { readState, writeState, getActiveStaffAllocation } = require('@root/hikkake_bot/utils/hikkakeStateManager');
+const { updateAllHikkakePanels } = require('@root/hikkake_bot/utils/hikkakePanelManager');
 const { ModalBuilder, TextInputBuilder, ActionRowBuilder, TextInputStyle } = require('discord.js');
 const { DateTime } = require('luxon');
-const { createSelectMenuRow, createNumericOptions } = require('./discordUtils');
-const { logHikkakeEvent } = require('./hikkakeCsvLogger');
+const { createSelectMenuRow, createNumericOptions } = require('@root/hikkake_bot/utils/discordUtils');
+const { logHikkakeEvent } = require('@root/hikkake_bot/utils/hikkakeCsvLogger');
 
 /**
  * Handles select menu interactions for the hikkake_bot.

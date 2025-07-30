@@ -1,11 +1,11 @@
 // hikkake_bot/utils/hikkake_button_handler.js
-const { readState, writeState } = require('./hikkakeStateManager');
-const { updateAllHikkakePanels } = require('./hikkakePanelManager');
-const { createSelectMenuRow, createNumericOptions, findMembersWithRole } = require('./discordUtils');
+const { readState, writeState } = require('@root/hikkake_bot/utils/hikkakeStateManager');
+const { updateAllHikkakePanels } = require('@root/hikkake_bot/utils/hikkakePanelManager');
+const { createSelectMenuRow, createNumericOptions, findMembersWithRole } = require('@root/hikkake_bot/utils/discordUtils');
 const { StringSelectMenuOptionBuilder, MessageFlags, ModalBuilder, TextInputBuilder, ActionRowBuilder, TextInputStyle } = require('discord.js');
-const { readReactions } = require('./hikkakeReactionManager');
-const { logToThread } = require('./threadLogger');
-const { logHikkakeEvent } = require('./hikkakeCsvLogger');
+const { readReactions } = require('@root/hikkake_bot/utils/hikkakeReactionManager');
+const { logToThread } = require('@root/hikkake_bot/utils/threadLogger');
+const { logHikkakeEvent } = require('@root/hikkake_bot/utils/hikkakeCsvLogger');
 const { DateTime } = require('luxon');
 
 module.exports = {
