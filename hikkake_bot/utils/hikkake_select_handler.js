@@ -1,5 +1,5 @@
 // hikkake_bot/utils/hikkake_select_handler.js
-const { readState, writeState } = require('./hikkakeStateManager');
+const { readState, writeState, getActiveStaffAllocation } = require('./hikkakeStateManager');
 const { updateAllHikkakePanels } = require('./hikkakePanelManager');
 const { ModalBuilder, TextInputBuilder, ActionRowBuilder, TextInputStyle } = require('discord.js');
 const { DateTime } = require('luxon');
@@ -46,7 +46,7 @@ async function execute(interaction) {
       details: { store: type, pura: parseInt(puraCount, 10), kama: parseInt(kamaCount, 10) }
     });
     await updateAllHikkakePanels(client, guildId, state);
-    await interaction.editReply({ content: '✅ スタッフ数を設定しました。', components: [] });
+    await interaction.editReply({ content: `✅ **${type.toUpperCase()}** のスタッフ数を **プラ: ${puraCount}人, カマ: ${kamaCount}人** に設定しました。`, components: [] });
     return true;
   }
 
@@ -88,6 +88,16 @@ async function execute(interaction) {
     const bottleCount = interaction.values[0];
     const state = await readState(guildId);
 
+    // Add staff availability check
+    const { allocatedPura, allocatedKama } = getActiveStaffAllocation(state, type);
+    const availablePura = (state.staff?.[type]?.pura || 0) - allocatedPura;
+    const availableKama = (state.staff?.[type]?.kama || 0) - allocatedKama;
+
+    if (parseInt(puraCount, 10) > availablePura || parseInt(kamaCount, 10) > availableKama) {
+        await interaction.editReply({ content: `❌ スタッフが不足しています。\n現在利用可能 - プラ: ${availablePura}人, カマ: ${availableKama}人`, components: [] });
+        return true;
+    }
+
     state.orders = state.orders || { quest: [], tosu: [], horse: [] };
     state.staff = state.staff || {};
     state.staff[interaction.user.id] = state.staff[interaction.user.id] || { name: interaction.member.displayName, orders: [] };
@@ -108,6 +118,7 @@ async function execute(interaction) {
     state.staff[interaction.user.id].orders.push(order.id);
 
     await writeState(guildId, state);
+    const summary = `お客様: ${guestCount}人, プラ: ${puraCount}人, カマ: ${kamaCount}人, ボトル: ${bottleCount}本`;
     await logHikkakeEvent(guildId, {
       type: command, // 'order' or 'arrival'
       user: interaction.user,
@@ -120,7 +131,7 @@ async function execute(interaction) {
       }
     });
     await updateAllHikkakePanels(client, guildId, state);
-    await interaction.editReply({ content: '✅ 情報を記録しました。', components: [] });
+    await interaction.editReply({ content: `✅ 記録しました: ${summary}`, components: [] });
     return true;
   }
 
@@ -135,11 +146,17 @@ async function execute(interaction) {
       .setTitle('同伴情報の入力');
 
     const guestCountInput = new TextInputBuilder().setCustomId('guest_count').setLabel('お客様の人数').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('例: 2');
+    const puraCountInput = new TextInputBuilder().setCustomId('pura_count').setLabel('担当プラの人数').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('例: 1');
+    const kamaCountInput = new TextInputBuilder().setCustomId('kama_count').setLabel('担当カマの人数').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('例: 0');
+    const bottleCountInput = new TextInputBuilder().setCustomId('bottle_count').setLabel('ボトル本数').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('例: 0');
     const durationInput = new TextInputBuilder().setCustomId('duration').setLabel('同伴時間（分）').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('例: 60');
     const arrivalTimeInput = new TextInputBuilder().setCustomId('arrival_time').setLabel('お店への到着予定時間').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('例: 21:00');
 
     modal.addComponents(
       new ActionRowBuilder().addComponents(guestCountInput),
+      new ActionRowBuilder().addComponents(puraCountInput),
+      new ActionRowBuilder().addComponents(kamaCountInput),
+      new ActionRowBuilder().addComponents(bottleCountInput),
       new ActionRowBuilder().addComponents(durationInput),
       new ActionRowBuilder().addComponents(arrivalTimeInput)
     );

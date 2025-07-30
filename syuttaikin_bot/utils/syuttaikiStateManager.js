@@ -1,45 +1,67 @@
-// syuttaiki_bot/utils/syuttaikiStateManager.js
 const { readJsonFromGCS, saveJsonToGCS } = require('@common/gcs/gcsUtils');
 const logger = require('@common/logger');
 
-const STATE_PATH = (guildId) => `syuttaiki_bot/${guildId}/state.json`;
+const STATE_FILE_PATH = (guildId) => `data-svml/${guildId}/syuttaikin/state.json`;
+
+const defaultState = {
+  syuttaikin: {
+    panelChannelId: null,
+    logChannelId: null,
+    castRoles: {
+      quest: null,
+      totsuna: null,
+      trojan: null,
+    },
+    arrivalTimes: [],
+    departureTimes: [],
+    // The following are transient daily data, might be better to store separately
+    // but for now, let's keep them here. They should be cleared daily.
+    arrivals: {}, // { "20:00": [userId1, userId2], ... }
+    departures: {}, // { "21:00": [userId1, userId2], ... }
+  },
+};
 
 /**
- * Reads the state for a specific guild for the syuttaiki_bot.
+ * Reads the state from GCS and merges it with the default state.
  * @param {string} guildId The ID of the guild.
- * @returns {Promise<object>} The state object. Returns empty object if not found.
+ * @returns {Promise<object>} The state object.
  */
 async function readState(guildId) {
-  const defaultState = {
-    syuttaikin: {
-      castRoles: [],
-      arrivalTimes: ['20:00', '20:30', '21:00'],
-      panelChannelId: null,
-      logChannelId: null,
-      arrivals: {},
-    },
-    dailyRecords: {},
-  };
-  const statePath = STATE_PATH(guildId);
-  const state = await readJsonFromGCS(statePath, defaultState);
-  // ネストされたオブジェクトもデフォルト値で確実に初期化する
-  const mergedState = { ...defaultState, ...state };
-  mergedState.syuttaikin = { ...defaultState.syuttaikin, ...state.syuttaikin };
-  return mergedState;
+  try {
+    const state = await readJsonFromGCS(STATE_FILE_PATH(guildId));
+    // Deep merge with default state to ensure all keys exist
+    return {
+      ...defaultState,
+      ...state,
+      syuttaikin: {
+        ...defaultState.syuttaikin,
+        ...(state?.syuttaikin || {}),
+        castRoles: {
+          ...defaultState.syuttaikin.castRoles,
+          ...(state?.syuttaikin?.castRoles || {}),
+        },
+        arrivals: state?.syuttaikin?.arrivals || {},
+        departures: state?.syuttaikin?.departures || {},
+      },
+    };
+  } catch (error) {
+    if (error.code === 404) {
+      logger.info(`[StateManager] No state file found for guild ${guildId}. Returning default state.`);
+      return defaultState;
+    }
+    logger.error(`[StateManager] Failed to read state for guild ${guildId}`, { error });
+    // In case of other errors, return default state to prevent crashes
+    return defaultState;
+  }
 }
 
 /**
- * Writes the state for a specific guild for the syuttaiki_bot.
+ * Writes the state to GCS.
  * @param {string} guildId The ID of the guild.
- * @param {object} state The state object to save.
- * @returns {Promise<void>}
+ * @param {object} state The state object to write.
  */
 async function writeState(guildId, state) {
-  const statePath = STATE_PATH(guildId);
-  await saveJsonToGCS(statePath, state);
+  await saveJsonToGCS(STATE_FILE_PATH(guildId), state);
 }
 
-module.exports = {
-  readState,
-  writeState,
-};
+module.exports = { readState, writeState, defaultState };

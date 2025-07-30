@@ -6,6 +6,7 @@ const {
     RoleSelectMenuBuilder,
     PermissionFlagsBits,
     EmbedBuilder,
+    MessageFlags,
 } = require('discord.js');
 const { readJsonFromGCS } = require('../../common/gcs/gcsUtils');
 const logger = require('@common/logger');
@@ -15,7 +16,7 @@ const SETTINGS_FILE_PATH = (guildId) => `data-svml/${guildId}/uriage/config.json
 // コマンド実行時の処理
 async function execute(interaction) {
     // GCSからの読み込みに時間がかかる可能性があるため、先に応答を保留します
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     try {
         const guildId = interaction.guildId;

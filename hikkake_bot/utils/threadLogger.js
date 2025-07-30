@@ -56,23 +56,23 @@ function createLogEmbed(now, logData) {
       break;
     }
     case '同伴': {
-      const { douhanData, people } = details;
+      const { castUserId, duration, arrivalTime, people } = details;
       embed.setTitle('🤝 同伴記録')
         .setDescription(`**${categoryName}** で同伴が記録されました。`)
         .addFields(
-          { name: '担当キャスト', value: `<@${douhanData.castUserId}>`, inline: true },
+          { name: '担当キャスト', value: `<@${castUserId}>`, inline: true },
           { name: '客数', value: `${people}人`, inline: true },
-          { name: '同伴時間', value: `${douhanData.duration}分`, inline: true },
-          { name: '来店予定時間', value: douhanData.arrivalTime, inline: false }
+          { name: '同伴時間', value: `${duration}分`, inline: true },
+          { name: '来店予定時間', value: arrivalTime, inline: false }
         )
         .setColor(0x9B59B6); // Purple
       break;
     }
     case 'ログ退店': {
       const { retiredLog } = details;
-      const retiredLogTimestamp = DateTime.fromISO(retiredLog.timestamp).setZone('Asia/Tokyo').toFormat('HH:mm');
+      const retiredLogTimestamp = DateTime.fromISO(retiredLog.joinTimestamp).setZone('Asia/Tokyo').toFormat('HH:mm');
       const retiredLogUser = retiredLog.user.username;
-      const logLabel = { order: 'ひっかけ', douhan: '同伴', casual_arrival: 'ふらっと来た' }[retiredLog.type] || '不明';
+      const logLabel = { order: 'ひっかけ', douhan: '同伴', arrival: 'ふらっと来た' }[retiredLog.type] || '不明';
 
       embed.setTitle('👋 ログ完了（退店）')
         .setDescription(`**${categoryName}** のログが完了（退店）として処理されました。`)
@@ -101,6 +101,18 @@ function createLogEmbed(now, logData) {
           { name: '対象', value: `<@${resolvedLog.user.id}> の ${resolvedLog.people}人/${resolvedLog.bottles}本` }
         )
         .setColor(0xED4245); // Red
+      break;
+    }
+    case '注文キャンセル': {
+      const { people, user: originalUser } = details;
+      const time = DateTime.fromISO(details.joinTimestamp).setZone('Asia/Tokyo').toFormat('HH:mm');
+      embed.setTitle('🗑️ 注文キャンセル')
+        .setDescription(`**${categoryName}** の注文がキャンセルされました。`)
+        .addFields(
+          { name: '対象', value: `[${time}] ${people}人 (${originalUser.username})` },
+          { name: '操作者', value: `<@${user.id}>` }
+        )
+        .setColor(0x99AAB5); // Gray
       break;
     }
     default:

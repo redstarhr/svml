@@ -1,22 +1,12 @@
 // hikkake_bot/utils/hikkake_button_handler.js
 const { readState, writeState } = require('./hikkakeStateManager');
 const { updateAllHikkakePanels } = require('./hikkakePanelManager');
-const { createSelectMenuRow, createNumericOptions } = require('./discordUtils');
-const { StringSelectMenuOptionBuilder, MessageFlags } = require('discord.js');
-
-// Helper to find members with a specific role
-async function findMembersWithRole(guild, roleName) {
-    if (!guild) return [];
-    const role = guild.roles.cache.find(r => r.name === roleName);
-    if (!role) return [];
-    await guild.members.fetch();
-    return role.members
-        .filter(member => !member.user.bot)
-        .map(member => ({
-            label: member.displayName,
-            value: member.id,
-        }));
-}
+const { createSelectMenuRow, createNumericOptions, findMembersWithRole } = require('./discordUtils');
+const { StringSelectMenuOptionBuilder, MessageFlags, ModalBuilder, TextInputBuilder, ActionRowBuilder, TextInputStyle } = require('discord.js');
+const { readReactions } = require('./hikkakeReactionManager');
+const { logToThread } = require('./threadLogger');
+const { logHikkakeEvent } = require('./hikkakeCsvLogger');
+const { DateTime } = require('luxon');
 
 module.exports = {
     async execute(interaction) {
@@ -59,19 +49,23 @@ module.exports = {
             // Ensure the orders property exists to prevent crashes
             state.orders = state.orders || { quest: [], tosu: [], horse: [] };
 
-            // 「確定」「失敗」は「ひっかけ予定」のみが対象。「退店」は全ての未完了ログが対象。
-            const targetOrders = action === 'leave'
-                ? state.orders[type]?.filter(o => !o.leaveTimestamp) || []
-                : state.orders[type]?.filter(o => o.type === 'order' && !o.status && !o.leaveTimestamp) || [];
+            // Get all active (not left) orders for the store type
+            let targetOrders = state.orders[type]?.filter(o => !o.leaveTimestamp) || [];
+
+            // For 'confirm' and 'fail', only target 'order' types that haven't been resolved
+            if (action === 'confirm' || action === 'fail') {
+                targetOrders = targetOrders.filter(o => o.type === 'order' && !o.status);
+            }
 
             if (targetOrders.length === 0) {
                 return interaction.reply({ content: '対象のログが見つかりません。', flags: [MessageFlags.Ephemeral] });
             }
 
-            const options = targetOrders.map(order => new StringSelectMenuOptionBuilder()
-                .setLabel(`[${order.type}/${order.people}人] by ${order.user.username}`)
-                .setValue(order.id)
-            ).slice(0, 25);
+            const options = targetOrders.map(order => {
+                const time = DateTime.fromISO(order.joinTimestamp).setZone('Asia/Tokyo').toFormat('HH:mm');
+                const label = `[${time}] ${order.people}人 (${order.user.username})`;
+                return new StringSelectMenuOptionBuilder().setLabel(label).setValue(order.id);
+            }).slice(0, 25);
 
             const actionMap = {
                 confirm: { customId: `hikkake_resolve_log_confirm_${type}`, placeholder: '確定する「ひっかけ予定」を選択' },
@@ -91,12 +85,76 @@ module.exports = {
             const [, type, orderId] = cancelButtonMatch;
             const state = await readState(guildId);
             const orderIndex = state.orders[type]?.findIndex(o => o.id === orderId);
+            const orderToCancel = state.orders[type]?.[orderIndex];
 
-            if (orderIndex !== -1 && state.orders[type]) {
+            if (orderToCancel) {
+                await logToThread(guildId, client, {
+                    user: interaction.user,
+                    logType: '注文キャンセル',
+                    details: { type, ...orderToCancel },
+                    channelName: interaction.channel.name
+                });
+                await logHikkakeEvent(guildId, {
+                    type: 'log_cancel',
+                    user: interaction.user,
+                    details: { store: type, orderId: orderId, originalUser: orderToCancel.user.username }
+                });
                 state.orders[type].splice(orderIndex, 1);
                 await writeState(guildId, state);
                 await updateAllHikkakePanels(client, guildId, state);
             }
+            return true;
+        }
+
+        // --- Reaction Admin Buttons ---
+        const reactionAddMatch = customId.match(/^hikkake_reaction_add_(num|count)$/);
+        if (reactionAddMatch) {
+            const [, key] = reactionAddMatch;
+            const modal = new ModalBuilder()
+                .setCustomId(`hikkake_reaction_submit_quest_${key}`) // Default to quest, user can change if needed
+                .setTitle(`反応の追加 (${key === 'num' ? '人数' : '本数'})`);
+
+            const targetValueInput = new TextInputBuilder()
+                .setCustomId('target_value')
+                .setLabel(`対象の${key === 'num' ? '人数' : '本数'} (半角数字)`)
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true);
+
+            const messagesInput = new TextInputBuilder()
+                .setCustomId('reaction_messages')
+                .setLabel('反応文 (複数行で複数登録)')
+                .setStyle(TextInputStyle.Paragraph)
+                .setRequired(true);
+
+            modal.addComponents(
+                new ActionRowBuilder().addComponents(targetValueInput),
+                new ActionRowBuilder().addComponents(messagesInput)
+            );
+            await interaction.showModal(modal);
+            return true;
+        }
+
+        if (customId === 'hikkake_reaction_remove') {
+            const reactions = await readReactions(guildId);
+            const options = [];
+            for (const store of ['quest', 'tosu', 'horse']) {
+                for (const key of ['num', 'count']) {
+                    const config = reactions[store]?.[key];
+                    if (config) {
+                        for (const value of Object.keys(config)) {
+                            const label = `[${store.toUpperCase()}/${key === 'num' ? '人数' : '本数'}] ${value}`;
+                            options.push(new StringSelectMenuOptionBuilder().setLabel(label).setValue(`${store}_${key}_${value}`));
+                        }
+                    }
+                }
+            }
+
+            if (options.length === 0) {
+                return interaction.reply({ content: '削除できる反応設定がありません。', flags: [MessageFlags.Ephemeral] });
+            }
+
+            const row = createSelectMenuRow('hikkake_reaction_remove_select', '削除する反応設定を選択', options.slice(0, 25));
+            await interaction.reply({ content: '削除する反応設定を選択してください。', components: [row], flags: [MessageFlags.Ephemeral] });
             return true;
         }
 

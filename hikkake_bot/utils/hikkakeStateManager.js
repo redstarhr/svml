@@ -28,4 +28,23 @@ async function writeState(guildId, state) {
   await saveJsonToGCS(filePath, state);
 }
 
-module.exports = { readState, writeState };
+/**
+ * Calculates the number of currently active staff members for a given store type.
+ * @param {object} state The current hikkake state.
+ * @param {string} type The store type ('quest', 'tosu', 'horse').
+ * @returns {{allocatedPura: number, allocatedKama: number}}
+ */
+function getActiveStaffAllocation(state, type) {
+  if (!state.orders || !state.orders[type]) {
+    return { allocatedPura: 0, allocatedKama: 0 };
+  }
+
+  const activeOrders = state.orders[type].filter(o => !o.leaveTimestamp);
+
+  const allocatedPura = activeOrders.reduce((sum, order) => sum + (order.castPura || 0), 0);
+  const allocatedKama = activeOrders.reduce((sum, order) => sum + (order.castKama || 0), 0);
+
+  return { allocatedPura, allocatedKama };
+}
+
+module.exports = { readState, writeState, getActiveStaffAllocation };

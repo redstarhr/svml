@@ -11,6 +11,6 @@ const hikkakeHandler = require('./handlers/hikkake_handler');
 module.exports = {
   // Standardized export for slash commands
   commands: [hikkakeReactionAdmin, hikkakeSetting, hikkakeSetup].filter(Boolean),
-  // コンポーネント操作を処理するハンドラ
-  componentHandlers: [hikkakeHandler].filter(Boolean),
+  // interactionCreate.jsが期待するハンドラの配列
+  handlers: [hikkakeHandler].filter(Boolean),
 };

@@ -54,4 +54,28 @@ function createNumericOptions(count, unit, start = 1) {
     });
 }
 
-module.exports = { getGuild, createSelectMenuRow, createNumericOptions };
+/**
+ * Finds all non-bot members with a specific role in a guild.
+ * @param {import('discord.js').Guild} guild The guild to search in.
+ * @param {string} roleName The name of the role to find.
+ * @returns {Promise<Array<{label: string, value: string}>>} An array of objects for select menus.
+ */
+async function findMembersWithRole(guild, roleName) {
+    if (!guild) return [];
+    // Find role by name, case-insensitive
+    const role = guild.roles.cache.find(r => r.name.toLowerCase() === roleName.toLowerCase());
+    if (!role) {
+        logger.warn(`[findMembersWithRole] Role not found: "${roleName}" in guild "${guild.name}"`);
+        return [];
+    }
+    // Fetch all members to ensure the cache is up to date
+    await guild.members.fetch();
+    return role.members
+        .filter(member => !member.user.bot)
+        .map(member => ({
+            label: member.displayName,
+            value: member.id,
+        }));
+}
+
+module.exports = { getGuild, createSelectMenuRow, createNumericOptions, findMembersWithRole };
