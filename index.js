@@ -24,16 +24,10 @@ if (process.env.NODE_ENV === 'development' && !process.env.GUILD_ID) {
 
 logger.info(`Google認証情報を使用中: ${process.env.GOOGLE_APPLICATION_CREDENTIALS}`);
 
-// --- 機能モジュールの動的読み込み ---
-client.commands = new Collection();
-client.componentHandlers = new Collection(); // customIdで直接マッピングされるハンドラ
-client.componentRouters = []; // 複数のcustomIdを処理するルーター型ハンドラ
-client.messageHandlers = [];   // 特定のメッセージに反応する処理
-
-
 // プロジェクトルートにある `_bot` で終わるディレクトリを自動的に探索
+// `syuttaikin` のように `_bot` で終わらないディレクトリも対象に含める
 const featureDirs = fs.readdirSync(__dirname, { withFileTypes: true })
-  .filter(dirent => dirent.isDirectory() && dirent.name.endsWith('_bot'))
+  .filter(dirent => dirent.isDirectory() && (dirent.name.endsWith('_bot') || dirent.name === 'syuttaikin'))
   .map(dirent => dirent.name);
 
 logger.info(`🔍 ${featureDirs.length}個の機能ディレクトリを検出: ${featureDirs.join(', ')}`);
