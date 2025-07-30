@@ -19,7 +19,7 @@ const commandNames = new Map(); // Use Map to store feature name for better erro
 
 // --- コマンドデータの読み込み (index.jsとロジックを統一) ---
 const featureDirs = fs.readdirSync(__dirname, { withFileTypes: true })
-  .filter(dirent => dirent.isDirectory() && dirent.name.endsWith('_bot'))
+  .filter(dirent => dirent.isDirectory() && (dirent.name.endsWith('_bot') || dirent.name === 'syuttaikin'))
   .map(dirent => dirent.name);
 
 logger.info(`[DevDeploy] 🔍 ${featureDirs.length}個の機能ディレクトリを検出: ${featureDirs.join(', ')}`);

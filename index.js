@@ -27,8 +27,9 @@ logger.info(`Google認証情報を使用中: ${process.env.GOOGLE_APPLICATION_CR
 // --- コマンドハンドラの読み込み ---
 client.commands = new Collection();
 // プロジェクトルートにある `_bot` で終わるディレクトリを自動的に探索
+// `syuttaikin` のように `_bot` で終わらないディレクトリも対象に含める
 const featureDirs = fs.readdirSync(__dirname, { withFileTypes: true })
-  .filter(dirent => dirent.isDirectory() && dirent.name.endsWith('_bot'))
+  .filter(dirent => dirent.isDirectory() && (dirent.name.endsWith('_bot') || dirent.name === 'syuttaikin'))
   .map(dirent => dirent.name);
 
 logger.info(`🔍 ${featureDirs.length}個の機能ディレクトリを検出: ${featureDirs.join(', ')}`);
