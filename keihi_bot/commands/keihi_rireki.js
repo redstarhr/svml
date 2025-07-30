@@ -4,7 +4,7 @@ const { readState } = require('../utils/keihiStateManager');
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('keihi-rireki')
+    .setName('keihi_rireki')
     .setDescription('提出された経費の履歴を確認し、承認または拒否します。')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   async execute(interaction) {

@@ -1,34 +1,5 @@
 const { Events, MessageFlags } = require('discord.js');
-const fs = require('node:fs');
-const path = require('node:path');
 const logger = require('@common/logger');
-
-// --- 各機能モジュールのハンドラを動的に読み込む ---
-function loadComponentHandlers() {
-  const handlers = [];
-  const featureDirs = fs.readdirSync(path.join(__dirname, '..'), { withFileTypes: true })
-    .filter(dirent => dirent.isDirectory() && dirent.name.endsWith('_bot'))
-    .map(dirent => dirent.name);
-
-  for (const feature of featureDirs) {
-    const featureIndexPath = path.join(__dirname, '..', feature, 'index.js');
-    if (fs.existsSync(featureIndexPath)) {
-      try {
-        const featureModule = require(featureIndexPath);
-        // 'componentHandlers' 配列のみを探索
-        if (featureModule.componentHandlers && Array.isArray(featureModule.componentHandlers)) {
-          handlers.push(...featureModule.componentHandlers);
-        }
-      } catch (error) {
-        logger.error(`エラー: モジュール ${feature} からのコンポーネントハンドラ読み込みに失敗しました。`, { error });
-      }
-    }
-  }
-  return handlers;
-}
-
-const componentHandlers = loadComponentHandlers();
-logger.info(`✅ ${componentHandlers.length}個のコンポーネントハンドラを動的に読み込みました。`);
 
 module.exports = {
   name: Events.InteractionCreate,
@@ -63,10 +34,20 @@ module.exports = {
         return;
       }
 
-      // コマンド以外のインタラクション（ボタン、モーダル等）
-      for (const handler of componentHandlers) {
-        if (await handler.execute(interaction, client)) {
-          return; // ハンドラが処理できたらtrueを返すので、そこでループを抜ける
+      // --- コンポーネントインタラクションの処理 ---
+      if (interaction.isMessageComponent() || interaction.isModalSubmit()) {
+        // 1. customIdによる直接的なハンドラ検索 (効率的)
+        const handler = client.componentHandlers.get(interaction.customId);
+        if (handler) {
+          await handler.execute(interaction, client);
+          return;
+        }
+
+        // 2. ルーター型ハンドラによる処理 (後方互換性・汎用処理)
+        for (const router of client.componentRouters) {
+          if (await router.execute(interaction, client)) {
+            return; // ハンドラが処理できたらtrueを返すので、そこでループを抜ける
+          }
         }
       }
     } catch (error) {

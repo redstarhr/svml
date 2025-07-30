@@ -24,8 +24,13 @@ if (process.env.NODE_ENV === 'development' && !process.env.GUILD_ID) {
 
 logger.info(`Google認証情報を使用中: ${process.env.GOOGLE_APPLICATION_CREDENTIALS}`);
 
-// --- コマンドハンドラの読み込み ---
+// --- 機能モジュールの動的読み込み ---
 client.commands = new Collection();
+client.componentHandlers = new Collection(); // customIdで直接マッピングされるハンドラ
+client.componentRouters = []; // 複数のcustomIdを処理するルーター型ハンドラ
+client.messageHandlers = []; // 特定のメッセージに反応する処理
+
+
 // プロジェクトルートにある `_bot` で終わるディレクトリを自動的に探索
 const featureDirs = fs.readdirSync(__dirname, { withFileTypes: true })
   .filter(dirent => dirent.isDirectory() && dirent.name.endsWith('_bot'))
@@ -37,26 +42,53 @@ for (const feature of featureDirs) {
   if (fs.existsSync(featureIndexPath)) {
     try {
       const featureModule = require(featureIndexPath);
+
+      // コマンドの読み込み
       if (featureModule.commands && Array.isArray(featureModule.commands)) {
         for (const command of featureModule.commands) {
           if ('data' in command && 'execute' in command) {
-            const commandName = command.data.name;
-            if (client.commands.has(commandName)) {
-              logger.error(`❌ 重複エラー: コマンド名 "${commandName}" が検出されました。モジュール "${feature}" からのバージョンはスキップされます。`);
-              continue;
-            }
-            client.commands.set(commandName, command);
+            client.commands.set(command.data.name, command);
           } else {
-            logger.warn(`警告: モジュール ${feature} のコマンドオブジェクトに 'data' または 'execute' がありません。`);
+            logger.warn(`[${feature}] 警告: コマンドに 'data' または 'execute' がありません。`);
           }
         }
       }
+
+      // コンポーネントハンドラの読み込み (Buttons, Selects, etc.)
+      if (featureModule.componentHandlers && Array.isArray(featureModule.componentHandlers)) {
+        for (const handler of featureModule.componentHandlers) {
+          if ('customId' in handler && 'execute' in handler) {
+            // customIdを持つハンドラはCollectionに登録
+            client.componentHandlers.set(handler.customId, handler);
+          } else if ('execute' in handler) {
+            // customIdを持たない汎用ハンドラはルーターとして配列に登録
+            client.componentRouters.push(handler);
+          } else {
+            logger.warn(`[${feature}] 警告: コンポーネントハンドラに 'execute' がありません。`);
+          }
+        }
+      }
+
+      // メッセージハンドラの読み込み
+      if (featureModule.messageHandlers && Array.isArray(featureModule.messageHandlers)) {
+        for (const handler of featureModule.messageHandlers) {
+          if ('execute' in handler) {
+            client.messageHandlers.push(handler);
+          } else {
+            logger.warn(`[${feature}] 警告: メッセージハンドラに 'execute' がありません。`);
+          }
+        }
+      }
+
     } catch (error) {
-      logger.error(`エラー: モジュール ${feature} からのコマンド読み込みに失敗しました。`, { error });
+      logger.error(`エラー: モジュール ${feature} の読み込みに失敗しました。詳細: ${error.stack}`);
     }
   }
 }
 logger.info(`✅ ${client.commands.size}個のスラッシュコマンドを正常に読み込みました。`);
+logger.info(`✅ ${client.componentHandlers.size}個のコンポーネントハンドラを動的に読み込みました。`);
+logger.info(`✅ ${client.componentRouters.length}個のコンポーネントルーターを動的に読み込みました。`);
+logger.info(`✅ ${client.messageHandlers.length}個のメッセージハンドラを動的に読み込みました。`);
 
 // --- イベントハンドラの読み込み ---
 const eventsPath = path.join(__dirname, 'events');

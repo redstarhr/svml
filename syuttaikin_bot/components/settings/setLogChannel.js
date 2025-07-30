@@ -3,26 +3,25 @@ const { updateSettingsMessage } = require('./_updateSettingsMessage');
 const logger = require('@common/logger');
 
 module.exports = {
-  customId: 'setting_set_cast_roles',
+  customId: 'setting_set_log_channel',
   /**
-   * @param {import('discord.js').RoleSelectMenuInteraction} interaction
+   * @param {import('discord.js').ChannelSelectMenuInteraction} interaction
    */
   async execute(interaction) {
     const guildId = interaction.guild.id;
-    const selectedRoles = interaction.values; // Role IDs
+    const selectedChannelId = interaction.values[0];
 
     try {
       await updateState(guildId, (currentState) => {
         if (!currentState.syuttaikin) currentState.syuttaikin = {};
-        currentState.syuttaikin.castRoles = selectedRoles;
+        currentState.syuttaikin.logChannelId = selectedChannelId;
         return currentState;
       });
 
-      // 設定パネルの埋め込みを更新して、ユーザーに即座にフィードバック
       await updateSettingsMessage(interaction);
-      logger.info(`[syuttaikin-settings] Guild ${guildId} のキャストロールを更新しました。`);
+      logger.info(`[syuttaikin-settings] Guild ${guildId} のログ通知チャンネルを更新しました。`);
     } catch (error) {
-      logger.error(`[syuttaikin-settings] キャストロールの更新中にエラーが発生しました (Guild: ${guildId})`, { error });
+      logger.error(`[syuttaikin-settings] ログ通知チャンネルの更新中にエラーが発生しました (Guild: ${guildId})`, { error });
       if (!interaction.replied && !interaction.deferred) await interaction.reply({ content: '設定の更新中にエラーが発生しました。', ephemeral: true });
     }
   },

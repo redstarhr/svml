@@ -48,7 +48,7 @@ module.exports = {
       embeds: [embed],
       components: [
         new ActionRowBuilder().addComponents(roleSelect),
-        new ActionRowRowBuilder().addComponents(panelChannelSelect),
+        new ActionRowBuilder().addComponents(panelChannelSelect),
         new ActionRowBuilder().addComponents(logChannelSelect),
       ],
     });

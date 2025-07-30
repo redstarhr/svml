@@ -3,7 +3,7 @@ const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('help')
+    .setName('keihi_help')
     .setDescription('📘 経費申請Botの使い方を表示します'),
 
   async execute(interaction) {
@@ -13,20 +13,24 @@ module.exports = {
       .setDescription('以下のスラッシュコマンドとボタンを使って経費申請を行えます。')
       .addFields(
         {
-          name: '/経費申請設置',
-          value: '📌 経費申請ボタンの設置（管理者専用）',
+          name: '/keihi_setti',
+          value: '📌 このチャンネルに経費申請ボタンを設置します。（管理者専用）',
         },
         {
-          name: '/経費申請履歴',
-          value: '📊 自分の過去の申請履歴を確認（選択式）',
+          name: '/keihi_config',
+          value: '⚙️ 経費申請の承認/閲覧ロールを設定します。（管理者専用）',
         },
         {
-          name: '/経費申請embed',
-          value: '📎 経費申請embedを再送信（必要に応じて使用）',
+          name: '/keihi_rireki',
+          value: '📊 承認待ちの経費申請を確認・処理します。（管理者専用）',
+        },
+        {
+          name: '/keihi_csv',
+          value: '📄 申請された経費をCSV形式でダウンロードします。（管理者専用）',
         },
         {
           name: '📩 経費申請ボタン',
-          value: 'フォーム入力 → 申請送信 → スレッド or シートに保存されます',
+          value: 'ボタンを押して表示されるフォームから経費を申請します。',
         }
       )
       .setFooter({ text: 'STAR管理bot © 2025' });

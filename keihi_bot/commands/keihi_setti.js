@@ -9,12 +9,12 @@ const {
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('経費申請設置')
-    .setDescription('経費申請フォーラム作成の設定UIを表示'),
+    .setName('keihi_setti')
+    .setDescription('経費申請の受付メッセージをこのチャンネルに設置します。'),
 
   async execute(interaction) {
     const embed = new EmbedBuilder()
-      .setTitle('📋 経費申請設置設定')
+      .setTitle('📋 経費申請の設置')
       .setDescription('下のボタンでこれからbot送信される『経費申請フォーラム』の本文を入力します')
       .setColor(0x3498db);
 

@@ -8,7 +8,7 @@ const {
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('経費申請embed')
+    .setName('keihi_embed')
     .setDescription('経費申請botでメッセージ送信ができます'), 
 
   adminOnly: true, // ✅ 管理者専用として制限
