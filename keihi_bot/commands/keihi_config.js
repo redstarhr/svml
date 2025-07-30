@@ -10,7 +10,7 @@ const {
   ComponentType
 } = require('discord.js');
 
-const { setApproverRoles, setVisibleRoles } = require('../../keihi_bot/utils/fileStorage.js');
+const { setApproverRoles, setVisibleRoles } = require('../utils/fileStorage.js');
 
 const MESSAGES = require('../../keihi_bot/constants/messages.js');
 
@@ -55,7 +55,7 @@ module.exports = {
       });
 
       const collector = response.createMessageComponentCollector({
-        filter: i => i.user.id === interaction.user.id  // インタラクションしたユーザーに限定
+        filter: i => i.user.id === interaction.user.id,  // インタラクションしたユーザーに限定
         time: 120_000, // 2分間
       });
 

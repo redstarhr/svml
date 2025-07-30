@@ -28,7 +28,7 @@ logger.info(`Google認証情報を使用中: ${process.env.GOOGLE_APPLICATION_CR
 client.commands = new Collection();
 client.componentHandlers = new Collection(); // customIdで直接マッピングされるハンドラ
 client.componentRouters = []; // 複数のcustomIdを処理するルーター型ハンドラ
-client.messageHandlers = []; // 特定のメッセージに反応する処理
+client.messageHandlers = [];   // 特定のメッセージに反応する処理
 
 
 // プロジェクトルートにある `_bot` で終わるディレクトリを自動的に探索
@@ -58,10 +58,8 @@ for (const feature of featureDirs) {
       if (featureModule.componentHandlers && Array.isArray(featureModule.componentHandlers)) {
         for (const handler of featureModule.componentHandlers) {
           if ('customId' in handler && 'execute' in handler) {
-            // customIdを持つハンドラはCollectionに登録
             client.componentHandlers.set(handler.customId, handler);
           } else if ('execute' in handler) {
-            // customIdを持たない汎用ハンドラはルーターとして配列に登録
             client.componentRouters.push(handler);
           } else {
             logger.warn(`[${feature}] 警告: コンポーネントハンドラに 'execute' がありません。`);

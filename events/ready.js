@@ -52,7 +52,8 @@ function deployDevCommands() {
   }
 
   logger.info('[ReadyEvent] 開発環境を検出しました。コマンドを自動登録します...');
-  const deployProcess = exec('node devcmd.js');
+  const scriptPath = path.join(__dirname, '..', 'devcmd.js');
+  const deployProcess = exec(`node "${scriptPath}"`);
 
   deployProcess.stdout.on('data', (data) => {
     process.stdout.write(`[DEV-DEPLOY] ${data}`);
@@ -79,7 +80,6 @@ function logBotInfo(client) {
   const totalUsers = guilds.reduce((acc, guild) => acc + guild.memberCount, 0);
 
   logger.info(`   接続サーバー数: ${guilds.size}`);
-  logger.info(`   総ユーザー数: ${totalUsers}`);
 }
 
 module.exports = {

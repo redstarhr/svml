@@ -1,6 +1,6 @@
 // syuttaikin_bot/commands/cast-departure-panel.js
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
-const { readState } = require('../utils/syuttaikiStateManager');
+const { readState } = require('../utils/syuttaikinStateManager');
 const logger = require('@common/logger');
 
 module.exports = {

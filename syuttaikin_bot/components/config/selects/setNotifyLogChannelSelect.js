@@ -1,5 +1,5 @@
 const { ensureCastShiftSettingJSON, readJSON, writeJSON } = require('../../utils/fileHelper');
-const { safeReply } = require('../../utils/safeReply');
+const { safeReply } = require('../../../utils/safeReply');
 
 module.exports = {
   customId: 'set_notify_log_channel_select',

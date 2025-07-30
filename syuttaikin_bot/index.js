@@ -3,9 +3,15 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 // --- コマンド ---
-const castArrivalPanel = require('./commands/cast-arrival-panel.js');
-const castDeparturePanel = require('./commands/cast-departure-panel.js');
-const castSettings = require('./commands/cast-settings.js');
+const commands = [];
+const commandsPath = path.join(__dirname, 'commands');
+if (fs.existsSync(commandsPath)) {
+    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+    for (const file of commandFiles) {
+        const filePath = path.join(commandsPath, file);
+        commands.push(require(filePath));
+    }
+}
 
 // --- コンポーネントハンドラの動的読み込み ---
 const componentHandlers = [];
@@ -26,6 +32,6 @@ function readHandlers(dir) {
 if (fs.existsSync(componentsPath)) readHandlers(componentsPath);
 
 module.exports = {
-  commands: [castArrivalPanel, castDeparturePanel, castSettings],
+  commands: commands,
   componentHandlers: componentHandlers,
 };

@@ -1,4 +1,4 @@
-const { updateState } = require('../../utils/syuttaikiStateManager');
+const { updateState } = require('../utils/syuttaikinStateManager');
 const { updateSettingsMessage } = require('./_updateSettingsMessage');
 const logger = require('@common/logger');
 

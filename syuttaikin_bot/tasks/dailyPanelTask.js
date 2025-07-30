@@ -1,6 +1,6 @@
 // syuttaiki_bot/tasks/dailyPanelTask.js
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { readState } = require('../utils/syuttaikiStateManager');
+const { readState } = require('../utils/syuttaikinStateManager');
 const logger = require('@common/logger');
 const { DateTime } = require('luxon');
 

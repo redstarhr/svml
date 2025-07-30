@@ -45,10 +45,13 @@ module.exports = {
 
         // 2. ルーター型ハンドラによる処理 (後方互換性・汎用処理)
         for (const router of client.componentRouters) {
+          // ハンドラは処理対象ならtrueを返す想定
           if (await router.execute(interaction, client)) {
-            return; // ハンドラが処理できたらtrueを返すので、そこでループを抜ける
+            return;
           }
         }
+        // ここまで到達した場合、どのハンドラも処理しなかったことになる
+        logger.warn(`[Interaction] 未処理のコンポーネントインタラクション: ${interaction.customId}`);
       }
     } catch (error) {
       logger.error(`インタラクション処理中にエラー (ID: ${interaction.customId || interaction.commandName})`, { error });

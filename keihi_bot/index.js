@@ -1,3 +1,5 @@
+// keihi_bot/index.js
+
 const keihisetti = require('./commands/keihi_setti.js');
 const keihicsv = require('./commands/keihicsv.js');
 const keihiconfig = require('./commands/keihi_config.js');

@@ -5,30 +5,31 @@ const {
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
+  PermissionFlagsBits,
 } = require('discord.js');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('keihi_setti')
-    .setDescription('経費申請の受付メッセージをこのチャンネルに設置します。'),
+    .setDescription('このチャンネルに経費申請の受付メッセージを設置します。')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator), // 管理者のみ実行可能
 
   async execute(interaction) {
     const embed = new EmbedBuilder()
-      .setTitle('📋 経費申請の設置')
-      .setDescription('下のボタンでこれからbot送信される『経費申請フォーラム』の本文を入力します')
-      .setColor(0x3498db);
+      .setTitle('経費申請')
+      .setDescription('下のボタンを押して、経費申請フォームに必要な情報を入力してください。')
+      .setColor(0x5865F2)
+      .setFooter({ text: 'STAR管理bot' });
 
-    const configButton = new ButtonBuilder()
-      .setCustomId('setup_create_forum')
-      .setLabel('経費申請フォーラム作成')
+    const applyButton = new ButtonBuilder()
+      .setCustomId('keihi_apply_start') // 申請開始ボタンのID
+      .setLabel('経費を申請する')
+      .setEmoji('📝')
       .setStyle(ButtonStyle.Primary);
 
-    const row = new ActionRowBuilder().addComponents(configButton);
+    const row = new ActionRowBuilder().addComponents(applyButton);
 
-    await interaction.reply({
-      embeds: [embed],
-      components: [row],
-      flags: 64 // 自分にだけ見える
-    });
+    await interaction.channel.send({ embeds: [embed], components: [row] });
+    await interaction.reply({ content: '経費申請の受付メッセージを設置しました。', ephemeral: true });
   },
 };
