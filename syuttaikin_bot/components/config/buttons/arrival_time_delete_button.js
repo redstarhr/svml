@@ -1,6 +1,6 @@
 // components/buttons/arrival_time_delete_button.js
 const { ActionRowBuilder, StringSelectMenuBuilder, MessageFlags } = require('discord.js');
-const { readState } = require('../../utils/syuttaikiStateManager');
+const { readState } = require('@root/syuttaikin_bot/utils/syuttaikinStateManager');
 
 module.exports = {
   customId: 'arrival_time_delete_button',

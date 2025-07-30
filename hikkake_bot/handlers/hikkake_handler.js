@@ -4,6 +4,9 @@ const logger = require('@common/logger');
 const buttonHandler = require('@root/hikkake_bot/utils/hikkake_button_handler');
 const modalHandler = require('@root/hikkake_bot/utils/hikkake_modal_handler');
 const selectHandler = require('@root/hikkake_bot/utils/hikkake_select_handler');
+// パネルの表示を更新するためのマネージャーを読み込みます。
+// このファイルと関数が存在することを前提としています。
+const { updateHikkakePanels } = require('@root/hikkake_bot/utils/hikkakePanelManager');
 
 module.exports = {
   /**
@@ -18,15 +21,26 @@ module.exports = {
     }
 
     try {
+      let wasHandled = false;
       if (interaction.isButton()) {
-        return await buttonHandler.execute(interaction);
+        wasHandled = await buttonHandler.execute(interaction);
       }
       if (interaction.isModalSubmit()) {
-        return await modalHandler.execute(interaction);
+        wasHandled = await modalHandler.execute(interaction);
       }
       if (interaction.isAnySelectMenu()) {
-        return await selectHandler.execute(interaction);
+        wasHandled = await selectHandler.execute(interaction);
       }
+
+      // モーダル送信など、データが変更される可能性のある操作が正常に処理された後、
+      // 表示パネルを更新する処理を呼び出します。
+      if (wasHandled && (interaction.isModalSubmit() || interaction.isAnySelectMenu())) {
+        // ユーザーへの応答は各ハンドラで既に行われているため、ここでは待機せずに更新処理を実行します。
+        updateHikkakePanels(interaction.client, interaction.guildId).catch(err => {
+            logger.error(`[HikkakeHandler] パネルの自動更新に失敗しました。`, { error: err, guildId: interaction.guildId });
+        });
+      }
+      return wasHandled;
     } catch (error) {
         logger.error(`[HikkakeHandler] インタラクション処理中にエラーが発生しました (ID: ${interaction.customId})`, { error });
         // ユーザーにエラーを通知
@@ -40,6 +54,5 @@ module.exports = {
         }
         return true; // エラーはこちらで処理済み
     }
-    return false;
   }
 };

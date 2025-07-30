@@ -1,6 +1,6 @@
 // syuttaikin_bot/components/settings/_handleRemoveTimeSelect.js
 
-const { updateState } = require('../../utils/syuttaikinStateManager');
+const { updateState } = require('@root/syuttaikin_bot/utils/syuttaikinStateManager');
 const { updateSettingsMessage } = require('./_updateSettingsMessage');
 const logger = require('@common/logger');
 
