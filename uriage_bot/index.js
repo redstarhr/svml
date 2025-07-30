@@ -11,6 +11,6 @@ const uriageconfigHandler = require('./handlers/uriage_config_handler.js');
 
 module.exports = {
   commands: [uriageConfig, uriageHoukoku, uriageCsv],
-  // interactionCreate.jsが期待するハンドラの配列
-  handlers: [uriageHandler].filter(Boolean),
+  // コンポーネント操作を処理するハンドラ
+  componentHandlers: [uriageHandler, uriageconfigHandler].filter(Boolean),
 };

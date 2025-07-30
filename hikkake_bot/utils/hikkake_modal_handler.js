@@ -1,10 +1,10 @@
 // hikkake_bot/utils/hikkake_modal_handler.js
 const { MessageFlags } = require('discord.js');
-const { readState, writeState, getActiveStaffAllocation } = require('./hikkakeStateManager');
-const { updateAllHikkakePanels } = require('../utils/hikkakePanelManager');
-const { logToThread } = require('./threadLogger');
-const { readReactions, writeReactions } = require('./hikkakeReactionManager');
-const { logHikkakeEvent } = require('./hikkakeCsvLogger');
+const { readState, writeState, getActiveStaffAllocation } = require('@root/hikkake_bot/utils/hikkakeStateManager');
+const { updateAllHikkakePanels } = require('@root/hikkake_bot/utils/hikkakePanelManager');
+const { logToThread } = require('@root/hikkake_bot/utils/threadLogger');
+const { readReactions, writeReactions } = require('@root/hikkake_bot/utils/hikkakeReactionManager');
+const { logHikkakeEvent } = require('@root/hikkake_bot/utils/hikkakeCsvLogger');
 
 module.exports = {
     async execute(interaction) {
