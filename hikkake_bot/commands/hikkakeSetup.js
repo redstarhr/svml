@@ -1,75 +1,60 @@
-// commands/hikkakeSetup.js
-const { SlashCommandBuilder, ChannelType, PermissionFlagsBits } = require('discord.js');
-const { writeState, readState, getDefaultState } = require('../utils/hikkakeStateManager');
-const { buildPanelEmbed, buildPanelButtons } = require('../utils/panelBuilder');
+const { SlashCommandBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
+const { readState, writeState } = require('../utils/hikkakeStateManager');
+const { buildStatusPanel, buildOrdersPanel } = require('../utils/panelBuilder');
+const logger = require('@common/logger');
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('ひっかけ一覧設置')
-    .setDescription('クエスト・凸スナ・トロイの木馬の設置チャンネルを選択し、一覧パネルを設置します。')
+    .setName('hikkake_setup')
+    .setDescription('指定したチャンネルに店内状況とひっかけ一覧パネルを設置します。')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .addStringOption(option =>
+      option.setName('store_type')
+        .setDescription('パネルを設置する店舗タイプ')
+        .setRequired(true)
+        .addChoices(
+          { name: 'クエスト', value: 'quest' },
+          { name: '凸スナ', value: 'tosu' },
+          { name: 'トロイの木馬', value: 'horse' }
+        ))
     .addChannelOption(option =>
-      option.setName('quest_channel')
-        .setDescription('クエスト設置チャンネルを選択してください')
-        .addChannelTypes(ChannelType.GuildText)
-        .setRequired(true))
-    .addChannelOption(option =>
-      option.setName('tosu_channel')
-        .setDescription('凸スナ設置チャンネルを選択してください')
-        .addChannelTypes(ChannelType.GuildText)
-        .setRequired(true))
-    .addChannelOption(option =>
-      option.setName('horse_channel')
-        .setDescription('トロイの木馬設置チャンネルを選択してください')
-        .addChannelTypes(ChannelType.GuildText)
-        .setRequired(true))
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+      option.setName('channel')
+        .setDescription('パネルを設置するテキストチャンネル')
+        .setRequired(true)
+        .addChannelTypes(ChannelType.GuildText)),
 
   async execute(interaction) {
-    const guildId = interaction.guildId;
-    const questChannel = interaction.options.getChannel('quest_channel');
-    const tosuChannel = interaction.options.getChannel('tosu_channel');
-    const horseChannel = interaction.options.getChannel('horse_channel');
+    await interaction.deferReply({ ephemeral: true });
 
-    // state読み込み・初期化
-    await interaction.deferReply({ flags: 64 }); // 64 is MessageFlags.Ephemeral
-
-    const state = await readState(guildId);
+    const storeType = interaction.options.getString('store_type');
+    const channel = interaction.options.getChannel('channel');
+    const guildId = interaction.guild.id;
 
     try {
-      const channels = {
-        quest: questChannel,
-        tosu: tosuChannel,
-        horse: horseChannel,
-      };
+      const state = await readState(guildId);
 
-      for (const type of ['quest', 'tosu', 'horse']) {
-        const channel = channels[type];
-
-        // Post Status Panel (with buttons)
-        const statusEmbed = buildPanelEmbed('status', type, state, guildId);
-        const buttons = buildPanelButtons(type);
-        const statusMsg = await channel.send({ embeds: [statusEmbed], components: buttons });
-
-        // Post Orders Panel (display only)
-        const ordersEmbed = buildPanelEmbed('orders', type, state, guildId);
-        const ordersMsg = await channel.send({ embeds: [ordersEmbed] });
-
-        // Update state with new message info
-        state.panelMessages[type] = {
-          channelId: channel.id,
-          statusMessageId: statusMsg.id,
-          ordersMessageId: ordersMsg.id,
-        };
+      // 同じ店舗タイプのパネルが既に存在するかチェック
+      if (state.panelMessages?.[storeType]?.channelId) {
+        const existingChannelId = state.panelMessages[storeType].channelId;
+        logger.warn(`[HikkakeSetup] ${storeType.toUpperCase()} のパネル設置が試みられましたが、既に存在します。 (Guild: ${interaction.guild.name})`);
+        return interaction.editReply({ content: `⚠️ **${storeType.toUpperCase()}** のパネルは既に <#${existingChannelId}> に設置されています。新しいパネルを設置するには、まず既存のパネルを削除してください。` });
       }
 
+      const statusPanelContent = buildStatusPanel(storeType, state);
+      const statusMessage = await channel.send(statusPanelContent);
+
+      const ordersPanelContent = buildOrdersPanel(storeType, state);
+      const ordersMessage = await channel.send(ordersPanelContent);
+
+      if (!state.panelMessages) state.panelMessages = {};
+      state.panelMessages[storeType] = { channelId: channel.id, statusMessageId: statusMessage.id, ordersMessageId: ordersMessage.id };
       await writeState(guildId, state);
 
-      await interaction.editReply({ content: '✅ ひっかけ一覧パネルを設置しました。' });
+      logger.info(`[HikkakeSetup] ${storeType.toUpperCase()} パネルを #${channel.name} に設置しました。 (Guild: ${interaction.guild.name})`);
+      await interaction.editReply({ content: `✅ **${storeType.toUpperCase()}** のパネルを <#${channel.id}> に設置しました。` });
     } catch (error) {
-      console.error('[ひっかけ一覧設置] エラー:', error);
-      // Let the global handler in index.js send the error message
-      // to prevent "InteractionAlreadyReplied" errors.
-      throw error;
+      logger.error(`[HikkakeSetup] パネルの設置中にエラーが発生しました。`, { error, guildId });
+      await interaction.editReply({ content: '❌ パネルの設置中にエラーが発生しました。Botに必要な権限（メッセージの送信・編集など）があるか確認してください。' });
     }
-  }
+  },
 };

@@ -13,7 +13,7 @@ const {
     AttachmentBuilder,
     MessageFlags,
 } = require('discord.js');
-const { readJsonFromGCS, saveJsonToGCS, listFilesInGCS } = require('../common/gcs/gcsUtils');
+const { readJsonFromGCS, saveJsonToGCS } = require('@common/gcs/gcsUtils');
 const { DateTime } = require('luxon');
 const logger = require('@common/logger');
 

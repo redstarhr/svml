@@ -49,15 +49,19 @@ async function updateAllHikkakePanels(client, guildId, state) {
     // Update Status Panel
     const statusMessage = await fetchMessageSafely(client, panelInfo.channelId, panelInfo.statusMessageId);
     if (statusMessage) {
-      const statusEmbed = buildPanelEmbed('status', type, currentState, guildId);
-      await statusMessage.edit({ embeds: [statusEmbed] }).catch(err => logger.error(`[PanelManager] ステータスパネルの編集に失敗 (${type}):`, { error: err.message }));
+      const statusContent = buildPanelEmbed('status', type, currentState);
+      await statusMessage.edit(statusContent).catch(err => {
+        logger.error(`[PanelManager] ステータスパネルの編集に失敗 (${type}):`, { error: err.message, guildId });
+      });
     }
 
     // Update Orders Panel
     const ordersMessage = await fetchMessageSafely(client, panelInfo.channelId, panelInfo.ordersMessageId);
     if (ordersMessage) {
-      const ordersEmbed = buildPanelEmbed('orders', type, currentState, guildId);
-      await ordersMessage.edit({ embeds: [ordersEmbed] }).catch(err => logger.error(`[PanelManager] 注文パネルの編集に失敗 (${type}):`, { error: err.message }));
+      const ordersContent = buildPanelEmbed('orders', type, currentState);
+      await ordersMessage.edit(ordersContent).catch(err => {
+        logger.error(`[PanelManager] 注文パネルの編集に失敗 (${type}):`, { error: err.message, guildId });
+      });
     }
   }
 }

@@ -42,29 +42,29 @@ async function checkGcsConnection() {
 }
 
 /**
- * 開発環境でコマンドを自動登録します。
- * GUILD_IDが.envに設定されている場合のみ実行されます。
+ * Bot起動時にアプリケーションコマンドをグローバルに登録します。
  */
-function deployDevCommands() {
-  if (!process.env.GUILD_ID) {
-    // GUILD_IDがなければ本番環境とみなし、何もしない
-    return;
-  }
-
-  logger.info('[ReadyEvent] 開発環境を検出しました。コマンドを自動登録します...');
+function registerGlobalCommands() {
+  logger.info('[ReadyEvent] アプリケーションコマンドをグローバルに登録しています...');
   const scriptPath = path.join(__dirname, '..', 'devcmd.js');
-  const deployProcess = exec(`node "${scriptPath}"`);
+  // --global フラグを付けて devcmd.js を実行
+  const deployProcess = exec(`node "${scriptPath}" --global`);
 
   deployProcess.stdout.on('data', (data) => {
-    process.stdout.write(`[DEV-DEPLOY] ${data}`);
+    // devcmd.jsからの標準出力を整形してログに出力
+    process.stdout.write(`[CMD-DEPLOY] ${data}`);
   });
 
   deployProcess.stderr.on('data', (data) => {
-    process.stderr.write(`[DEV-DEPLOY-ERROR] ${data}`);
+    process.stderr.write(`[CMD-DEPLOY-ERROR] ${data}`);
   });
 
   deployProcess.on('close', (code) => {
-    logger.info(`[ReadyEvent] コマンド登録プロセスがコード ${code} で終了しました。`);
+    if (code === 0) {
+      logger.info(`[ReadyEvent] コマンドのグローバル登録が正常に完了しました。`);
+    } else {
+      logger.error(`[ReadyEvent] コマンドのグローバル登録プロセスがエラーコード ${code} で終了しました。`);
+    }
   });
 }
 
@@ -92,12 +92,11 @@ module.exports = {
   async execute(client) {
     logBotInfo(client);
 
-    // 並列で実行可能な起動時タスク
-    await Promise.all([
-      checkGcsConnection(),
-      deployDevCommands(), // 開発環境の場合のみ実行される
-    ]);
+    // 起動時にグローバルコマンドを登録
+    registerGlobalCommands();
 
+    // GCS接続確認はコマンド登録と並行して実行可能
+    await checkGcsConnection();
     logger.info('------------------------------------------------------');
     // 定期実行タスクの開始
     startLogCleanupInterval(client);

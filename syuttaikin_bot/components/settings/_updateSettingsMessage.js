@@ -1,5 +1,5 @@
 const { EmbedBuilder, ActionRowBuilder, RoleSelectMenuBuilder, ChannelSelectMenuBuilder, ChannelType, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
-const { readState } = require('../utils/syuttaikinStateManager');
+const { readState } = require('@root/syuttaikin_bot/utils/syuttaikinStateManager');
 
 /**
  * 設定パネル全体（埋め込みメッセージとコンポーネント）を再描画します。

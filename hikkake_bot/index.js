@@ -1,16 +1,38 @@
 // hikkake_bot/index.js
+const hikkakeSetup = require('./commands/hikkakeSetup.js');
+const hikkakeAdmin = require('./commands/hikkakeAdmin.js');
 
-// --- Commands ---
-const hikkakeReactionAdmin = require('@root/hikkake_bot/commands/hikkakeReactionAdmin');
-const hikkakeSetting = require('@root/hikkake_bot/commands/hikkakeSetting');
-const hikkakeSetup = require('@root/hikkake_bot/commands/hikkakeSetup');
+// Component Handlers
+const panelActionHandler = require('./handlers/panelActionHandler.js');
+const reactionSettingHandler = require('./handlers/reactionSettingHandler.js');
+const reactionDeleteHandler = require('./handlers/reactionDeleteHandler.js');
 
-// --- Handlers ---
-const hikkakeHandler = require('@root/hikkake_bot/handlers/hikkake_handler');
+// Main hikkake feature handlers (replaces the old hikkake_handler.js)
+const hikkakeEnterButtonHandler = require('./handlers/hikkakeEnterButtonHandler.js');
+const hikkakeLeaveButtonHandler = require('./handlers/hikkakeLeaveButtonHandler.js');
+const hikkakeOrderButtonHandler = require('./handlers/hikkakeOrderButtonHandler.js');
+const hikkakeOrderModalHandler = require('./handlers/hikkakeOrderModalHandler.js');
+const hikkakeCompleteOrderButtonHandler = require('./handlers/hikkakeCompleteOrderButtonHandler.js');
+const hikkakeCancelOrderButtonHandler = require('./handlers/hikkakeCancelOrderButtonHandler.js');
+const hikkakeDeleteOrderButtonHandler = require('./handlers/hikkakeDeleteOrderButtonHandler.js');
+const hikkakeConfirmSelectHandler = require('./handlers/hikkakeConfirmSelectHandler.js');
 
 module.exports = {
-  // Standardized export for slash commands
-  commands: [hikkakeReactionAdmin, hikkakeSetting, hikkakeSetup].filter(Boolean),
-  // コンポーネント操作を処理するハンドラ
-  componentHandlers: [hikkakeHandler].filter(Boolean),
+  commands: [
+    hikkakeSetup,
+    hikkakeAdmin,
+  ],
+  componentHandlers: [
+    panelActionHandler,
+    reactionSettingHandler,
+    reactionDeleteHandler,
+    hikkakeEnterButtonHandler,
+    hikkakeLeaveButtonHandler,
+    hikkakeOrderButtonHandler,
+    hikkakeOrderModalHandler,
+    hikkakeCompleteOrderButtonHandler,
+    hikkakeCancelOrderButtonHandler,
+    hikkakeDeleteOrderButtonHandler,
+    hikkakeConfirmSelectHandler,
+  ],
 };

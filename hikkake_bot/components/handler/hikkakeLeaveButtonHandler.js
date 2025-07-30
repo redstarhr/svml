@@ -1,26 +1,61 @@
-const { readState, writeState } = require('../../../utils/hikkakeStateManager');
-const { updateAllHikkakePanels } = require('../../../utils/hikkakePanelManager');
+const { readState, writeState } = require('../../utils/hikkakeStateManager');
+const { updateAllHikkakePanels } = require('../../utils/hikkakePanelManager');
+const { logToThread } = require('../../utils/threadLogger');
+const logger = require('@common/logger');
+const { EmbedBuilder } = require('discord.js');
+const { DateTime } = require('luxon');
 
 module.exports = {
   customId: /^leave_(quest|tosu|horse)$/,
   async execute(interaction, client) {
-    await interaction.deferReply({ ephemeral: true });
+    try {
+      await interaction.deferReply({ ephemeral: true });
 
-    const type = interaction.customId.split('_')[1];
-    const guildId = interaction.guildId;
-    const user = interaction.user;
+      const match = interaction.customId.match(this.customId);
+      if (!match) return;
+      const [, type] = match;
+      const guildId = interaction.guildId;
+      const user = interaction.user;
 
-    const state = await readState(guildId);
+      const state = await readState(guildId);
 
-    const initialLength = state.members[type]?.length || 0;
-    state.members[type] = state.members[type]?.filter(member => member.id !== user.id) || [];
+      const memberIndex = state.members?.[type]?.findIndex(member => member.id === user.id);
 
-    if (state.members[type].length === initialLength) {
-      return interaction.editReply('あなたは入店していません。');
+      if (memberIndex === undefined || memberIndex === -1) {
+        return interaction.editReply({ content: '❌ あなたは入店していません。' });
+      }
+
+      // Remove member
+      const [removedMember] = state.members[type].splice(memberIndex, 1);
+
+      await writeState(guildId, state);
+      await updateAllHikkakePanels(client, guildId, state);
+
+      // Logging
+      let durationString = '不明';
+      if (removedMember.enterTimestamp) {
+        const enterTime = DateTime.fromISO(removedMember.enterTimestamp);
+        const leaveTime = DateTime.now();
+        const duration = leaveTime.diff(enterTime, ['minutes', 'seconds']);
+        durationString = `${Math.floor(duration.minutes)}分${Math.round(duration.seconds)}秒`;
+      }
+
+      const logEmbed = new EmbedBuilder()
+        .setColor('Red')
+        .setDescription(`**${user.displayName}** が **${type.toUpperCase()}** から退店しました。`)
+        .addFields({ name: '滞在時間', value: durationString, inline: true })
+        .setTimestamp()
+        .setFooter({ text: `操作者: ${user.tag}`, iconURL: user.displayAvatarURL() });
+
+      logger.info(`[HikkakeLeave] ${user.tag} left ${type.toUpperCase()} (Guild: ${interaction.guild.name})`);
+      await logToThread(client, guildId, { embeds: [logEmbed] });
+
+      await interaction.editReply({ content: '✅ 退店しました。' });
+    } catch (error) {
+      logger.error('退店処理中にエラーが発生しました。', { error, customId: interaction.customId, guildId: interaction.guildId });
+      if (interaction.deferred && !interaction.replied) {
+        await interaction.editReply({ content: '❌ 処理中にエラーが発生しました。' }).catch(() => {});
+      }
     }
-
-    await writeState(guildId, state);
-    await updateAllHikkakePanels(client, guildId, state);
-    await interaction.editReply('退店しました。');
   },
 };
