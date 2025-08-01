@@ -1,5 +1,5 @@
 // components/modals/arrival_time_register_submit.js
-const { readJSON, writeJSON } = require('../../../common/fileHelper');
+const { readJSON, writeJSON } = require('@common/fileHelper');
 const path = require('path');
 
 module.exports = {

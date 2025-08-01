@@ -33,7 +33,6 @@ module.exports = {
     try {
       const state = await readState(guildId);
 
-<<<<<<< HEAD
       // 同じ店舗タイプのパネルが既に存在するかチェック
       if (state.panelMessages?.[storeType]?.channelId) {
         const existingChannelId = state.panelMessages[storeType].channelId;
@@ -47,14 +46,6 @@ module.exports = {
       const ordersPanelContent = buildOrdersPanel(storeType, state);
       const ordersMessage = await channel.send(ordersPanelContent);
 
-=======
-      const statusPanelContent = buildStatusPanel(storeType, state);
-      const statusMessage = await channel.send(statusPanelContent);
-
-      const ordersPanelContent = buildOrdersPanel(storeType, state);
-      const ordersMessage = await channel.send(ordersPanelContent);
-
->>>>>>> 59fc32d257f80c6c3cda8fee4085df3d07861b02
       if (!state.panelMessages) state.panelMessages = {};
       state.panelMessages[storeType] = { channelId: channel.id, statusMessageId: statusMessage.id, ordersMessageId: ordersMessage.id };
       await writeState(guildId, state);

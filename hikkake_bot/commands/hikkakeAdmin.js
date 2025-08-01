@@ -1,47 +1,28 @@
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { buildAdminPanel } = require('../handlers/panelActionHandler');
 const logger = require('@common/logger');
-<<<<<<< HEAD
 const { ADMIN_COMMAND, REACTION_SETTING_SUBCOMMAND, REACTION_LIST_SUBCOMMAND, SET_REACT_PREFIX } = require('../constants');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName(ADMIN_COMMAND)
-=======
-
-module.exports = {
-  data: new SlashCommandBuilder()
-    .setName('hikkake_admin')
->>>>>>> 59fc32d257f80c6c3cda8fee4085df3d07861b02
     .setDescription('引っかけBotの管理用コマンドです。')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand(subcommand =>
       subcommand
-<<<<<<< HEAD
         .setName(REACTION_SETTING_SUBCOMMAND)
-=======
-        .setName('reaction_setting')
->>>>>>> 59fc32d257f80c6c3cda8fee4085df3d07861b02
         .setDescription('各種の人数/本数に応じた反応文を設定するパネルを表示します。'),
     )
     .addSubcommand(subcommand =>
       subcommand
-<<<<<<< HEAD
         .setName(REACTION_LIST_SUBCOMMAND)
-=======
-        .setName('reaction_list')
->>>>>>> 59fc32d257f80c6c3cda8fee4085df3d07861b02
         .setDescription('登録済みの反応文を管理するパネルを表示します。'),
     ),
 
   async execute(interaction) {
     const subcommand = interaction.options.getSubcommand();
 
-<<<<<<< HEAD
     if (subcommand === REACTION_SETTING_SUBCOMMAND) {
-=======
-    if (subcommand === 'reaction_setting') {
->>>>>>> 59fc32d257f80c6c3cda8fee4085df3d07861b02
       const embed = new EmbedBuilder()
         .setTitle('🎯 引っかけBot 反応文設定パネル')
         .setDescription('以下のボタンから、各種の人数/本数別反応文を登録できます。\n登録された文章はランダムにログで使われます。')
@@ -49,7 +30,6 @@ module.exports = {
 
       const rows = [
         new ActionRowBuilder().addComponents(
-<<<<<<< HEAD
           new ButtonBuilder().setCustomId(`${SET_REACT_PREFIX}quest_num`).setLabel('クエスト人数').setStyle(ButtonStyle.Primary),
           new ButtonBuilder().setCustomId(`${SET_REACT_PREFIX}quest_count`).setLabel('クエスト本数').setStyle(ButtonStyle.Primary),
           new ButtonBuilder().setCustomId(`${SET_REACT_PREFIX}tosu_num`).setLabel('凸スナ人数').setStyle(ButtonStyle.Success),
@@ -58,16 +38,6 @@ module.exports = {
           new ButtonBuilder().setCustomId(`${SET_REACT_PREFIX}tosu_count`).setLabel('凸スナ本数').setStyle(ButtonStyle.Success),
           new ButtonBuilder().setCustomId(`${SET_REACT_PREFIX}horse_num`).setLabel('トロイの木馬人数').setStyle(ButtonStyle.Secondary),
           new ButtonBuilder().setCustomId(`${SET_REACT_PREFIX}horse_count`).setLabel('トロイの木馬本数').setStyle(ButtonStyle.Secondary),
-=======
-          new ButtonBuilder().setCustomId('set_react_quest_num').setLabel('クエスト人数').setStyle(ButtonStyle.Primary),
-          new ButtonBuilder().setCustomId('set_react_quest_count').setLabel('クエスト本数').setStyle(ButtonStyle.Primary),
-          new ButtonBuilder().setCustomId('set_react_tosu_num').setLabel('凸スナ人数').setStyle(ButtonStyle.Success),
-        ),
-        new ActionRowBuilder().addComponents(
-          new ButtonBuilder().setCustomId('set_react_tosu_count').setLabel('凸スナ本数').setStyle(ButtonStyle.Success),
-          new ButtonBuilder().setCustomId('set_react_horse_num').setLabel('トロイの木馬人数').setStyle(ButtonStyle.Secondary),
-          new ButtonBuilder().setCustomId('set_react_horse_count').setLabel('トロイの木馬本数').setStyle(ButtonStyle.Secondary),
->>>>>>> 59fc32d257f80c6c3cda8fee4085df3d07861b02
         ),
       ];
 
@@ -78,11 +48,7 @@ module.exports = {
       });
     }
 
-<<<<<<< HEAD
     if (subcommand === REACTION_LIST_SUBCOMMAND) {
-=======
-    if (subcommand === 'reaction_list') {
->>>>>>> 59fc32d257f80c6c3cda8fee4085df3d07861b02
       try {
         const panelContent = await buildAdminPanel(interaction.guildId);
         return interaction.reply({ ...panelContent, ephemeral: true });
