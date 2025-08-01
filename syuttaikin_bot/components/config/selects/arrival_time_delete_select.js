@@ -1,5 +1,5 @@
 // syuttaiki_bot/components/selects/arrival_time_delete_select.js
-const { readState, writeState } = require('../../utils/syuttaikiStateManager');
+const { readState, writeState } = require('@root/syuttaikin_bot/utils/syuttaikinStateManager');
 const { createOrUpdateCastShiftEmbed } = require('@root/uriage_bot/utils/syuttaikinPanelManager');
 
 module.exports = {

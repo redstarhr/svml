@@ -20,9 +20,9 @@ module.exports = {
   async execute(interaction) {
     const embed = new EmbedBuilder()
       .setTitle('経費申請')
-      .setDescription('下のボタンを押して、経費申請フォームに必要な情報を入力してください。')
+      .setDescription(' 経費申請ボタンを押してください。')
       .setColor(0x5865F2)
-      .setFooter({ text: 'STAR管理bot' });
+      .setFooter({ text: 'SVML管理bot' });
 
     const applyButton = new ButtonBuilder()
       .setCustomId(APPLY_BUTTON_ID)

@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 // hikkake_bot/handlers/hikkake_handler.js
 
 const logger = require('@common/logger');
@@ -58,4 +56,3 @@ module.exports = {
     }
   }
 };
->>>>>>> 59fc32d257f80c6c3cda8fee4085df3d07861b02

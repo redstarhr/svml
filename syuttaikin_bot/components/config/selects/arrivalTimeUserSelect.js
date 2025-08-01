@@ -1,5 +1,5 @@
 // components/selects/arrivalTimeUserSelect.js
-const { readState, writeState } = require('../../utils/syuttaikiStateManager');
+const { readState, writeState } = require('@root/syuttaikin_bot/utils/syuttaikinStateManager');
 const { createOrUpdateCastShiftEmbed } = require('@root/uriage_bot/utils/syuttaikinPanelManager');
 const { sendSyukkaTaikinLog, formatSyukkaLog } = require('@root/uriage_bot/utils/syuttaikinLogger');
 

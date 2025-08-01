@@ -1,5 +1,5 @@
 // syuttaiki_bot/components/selects/log_channel_select.js
-const { readState, writeState } = require('../../utils/syuttaikiStateManager');
+const { readState, writeState } = require('@root/syuttaikin_bot/utils/syuttaikinStateManager');
 
 module.exports = {
   customId: 'log_channel_select',
