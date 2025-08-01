@@ -6,7 +6,10 @@ const {
   ButtonStyle,
   EmbedBuilder,
   PermissionFlagsBits,
+  MessageFlags,
 } = require('discord.js');
+
+const APPLY_BUTTON_ID = 'keihi_apply_start';
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -22,7 +25,7 @@ module.exports = {
       .setFooter({ text: 'STAR管理bot' });
 
     const applyButton = new ButtonBuilder()
-      .setCustomId('keihi_apply_start') // 申請開始ボタンのID
+      .setCustomId(APPLY_BUTTON_ID)
       .setLabel('経費を申請する')
       .setEmoji('📝')
       .setStyle(ButtonStyle.Primary);
@@ -30,6 +33,6 @@ module.exports = {
     const row = new ActionRowBuilder().addComponents(applyButton);
 
     await interaction.channel.send({ embeds: [embed], components: [row] });
-    await interaction.reply({ content: '経費申請の受付メッセージを設置しました。', ephemeral: true });
+    await interaction.reply({ content: '経費申請の受付メッセージを設置しました。', flags: MessageFlags.Ephemeral });
   },
 };

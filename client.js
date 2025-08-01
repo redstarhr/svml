@@ -11,9 +11,8 @@ const client = new Client({
 });
 
 client.commands = new Collection();
-// コンポーネントハンドラ
-client.componentHandlers = new Collection(); // customIdで直接マッピングされるハンドラ
-client.componentRouters = []; // 複数のcustomIdを処理するルーター型ハンドラ
+// すべてのコンポーネント（ボタン、モーダル等）の処理を担うハンドラ（ルーター形式）
+client.componentHandlers = [];
 client.messageHandlers = [];   // 特定のメッセージに反応する処理
 
 module.exports = { client };

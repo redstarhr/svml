@@ -1,9 +1,9 @@
 // keihi_bot/utils/fileStorage.js
-const { readJsonFromGCS, saveJsonToGCS } = require('../../common/gcs/gcsUtils.js');
-const { createAndSaveSpreadsheet } = require('./spreadsheet.js');
+const { readJsonFromGCS, saveJsonToGCS } = require('@common/gcs/gcsUtils.js');
+const { createAndSaveSpreadsheet } = require('@root/keihi_bot/utils/spreadsheet.js');
 
 // ────────── 内部ユーティリティ ──────────
-const BASE_PATH = 'keihi_bot';
+const BASE_PATH = 'keihi';
 
 function getMonth() {
   const now = new Date();
@@ -17,7 +17,7 @@ function getMonth() {
  * @returns {string}
  */
 function getDataPath(guildId, ...pathSegments) {
-    return [BASE_PATH, guildId, ...pathSegments].join('/');
+    return [guildId, BASE_PATH, ...pathSegments].join('/');
 }
 
 // ────────── 経費ログ処理 ──────────

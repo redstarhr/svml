@@ -1,5 +1,6 @@
 // hikkake_bot/handlers/reactionDeleteHandler.js
 
+<<<<<<< HEAD
 const { StringSelectMenuBuilder, ActionRowBuilder, EmbedBuilder } = require('discord.js');
 const { getReactions, deleteReaction } = require('../utils/hikkakeReactionManager');
 const logger = require('@common/logger');
@@ -66,6 +67,18 @@ module.exports = {
 
   async handleDeleteSelect(interaction) {
     if (!interaction.isStringSelectMenu()) {
+=======
+const { deleteReaction } = require('../utils/hikkakeReactionManager');
+const logger = require('@common/logger');
+
+module.exports = {
+  /**
+   * @param {import('discord.js').Interaction} interaction
+   * @returns {Promise<boolean>}
+   */
+  async execute(interaction) {
+    if (!interaction.isStringSelectMenu() || interaction.customId !== 'hikkake_reaction_delete') {
+>>>>>>> 59fc32d257f80c6c3cda8fee4085df3d07861b02
       return false;
     }
 
@@ -78,6 +91,7 @@ module.exports = {
     try {
       const deletedMessage = await deleteReaction(guildId, type, key, value, index);
       await interaction.editReply({
+<<<<<<< HEAD
         content: `✅ 反応文を削除しました: \`${deletedMessage}\`\n管理パネルを更新して、変更を確認してください。`,
         components: [],
         embeds: [],
@@ -86,5 +100,17 @@ module.exports = {
       logger.error('反応文の削除中にエラーが発生しました。', { error, guildId, selectedValue });
       await interaction.editReply({ content: '❌ 削除中にエラーが発生しました。', components: [], embeds: [] });
     }
+=======
+        content: `✅ 反応文を削除しました: \`${deletedMessage}\`\n新しい一覧を表示するには、再度コマンドを実行してください。`,
+        components: [], // メニューを消す
+        embeds: [], // 埋め込みを消す
+      });
+    } catch (error) {
+      logger.error('反応文の削除中にエラーが発生しました。', { error, guildId });
+      await interaction.editReply({ content: '❌ 削除中にエラーが発生しました。', components: [], embeds: [] });
+    }
+
+    return true;
+>>>>>>> 59fc32d257f80c6c3cda8fee4085df3d07861b02
   },
 };

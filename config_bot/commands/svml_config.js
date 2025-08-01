@@ -1,4 +1,10 @@
-const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits, MessageFlags } = require('discord.js');
+
+// Custom IDs for the buttons
+const ADD_STORE_ID = 'config_add_store';
+const REGISTER_USER_ID = 'config_register_user';
+const LEVEL_SETTINGS_ID = 'config_level_settings';
+
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -14,17 +20,17 @@ module.exports = {
 
     const buttons = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setCustomId('config_add_store')
+        .setCustomId(ADD_STORE_ID) // Note: This ID is not handled by any current handler.
         .setLabel('店舗名追加')
         .setEmoji('🏪')
         .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
-        .setCustomId('config_register_user')
+        .setCustomId(REGISTER_USER_ID) // Note: This ID is not handled by any current handler.
         .setLabel('ユーザー情報登録')
         .setEmoji('👤')
         .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
-        .setCustomId('config_level_settings')
+        .setCustomId(LEVEL_SETTINGS_ID) // Handled by leveling_bot/handlers/levelSettingsHandler.js
         .setLabel('レベル設定')
         .setEmoji('📈')
         .setStyle(ButtonStyle.Primary)
@@ -33,7 +39,7 @@ module.exports = {
     await interaction.reply({
       embeds: [embed],
       components: [buttons],
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   },
 };

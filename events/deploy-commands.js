@@ -10,7 +10,7 @@ const commandData = [];
 
 // すべての機能モジュールからコマンドを読み込む
 const featureDirs = fs.readdirSync(path.join(__dirname, '..'), { withFileTypes: true })
-  .filter(dirent => dirent.isDirectory() && dirent.name.endsWith('_bot'))
+  .filter(dirent => dirent.isDirectory() && (dirent.name.endsWith('_bot') || dirent.name === 'syuttaikin'))
   .map(dirent => dirent.name);
 
 logger.info(`[DEPLOY] 🔍 ${featureDirs.length}個の機能ディレクトリからコマンドを探索中: ${featureDirs.join(', ')}`);

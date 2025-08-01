@@ -50,13 +50,18 @@ for (const feature of featureDirs) {
 
       // コンポーネントハンドラの読み込み (Buttons, Selects, etc.)
       if (featureModule.componentHandlers && Array.isArray(featureModule.componentHandlers)) {
-        for (const handler of featureModule.componentHandlers) {
-          if ('customId' in handler && 'execute' in handler) {
-            client.componentHandlers.set(handler.customId, handler);
-          } else if ('execute' in handler) {
-            client.componentRouters.push(handler);
-          } else {
-            logger.warn(`[${feature}] 警告: コンポーネントハンドラに 'execute' がありません。`);
+        const handlersPath = path.join(__dirname, feature, 'handlers');
+        if (fs.existsSync(handlersPath)) {
+          const handlerFiles = fs.readdirSync(handlersPath).filter(file => file.endsWith('.js'));
+          for (const handler of featureModule.componentHandlers) {
+            if (handler && typeof handler.execute === 'function') {
+              // Find the file that exports this handler object to attach its path for logging
+              const handlerFileName = handlerFiles.find(file => require(path.join(handlersPath, file)) === handler);
+              handler.filePath = handlerFileName ? path.join(feature, 'handlers', handlerFileName) : '不明なファイル';
+              client.componentHandlers.push(handler);
+            } else {
+              logger.warn(`[${feature}] 警告: コンポーネントハンドラに 'execute' がありません。`);
+            }
           }
         }
       }
@@ -78,8 +83,7 @@ for (const feature of featureDirs) {
   }
 }
 logger.info(`✅ ${client.commands.size}個のスラッシュコマンドを正常に読み込みました。`);
-logger.info(`✅ ${client.componentHandlers.size}個のコンポーネントハンドラを動的に読み込みました。`);
-logger.info(`✅ ${client.componentRouters.length}個のコンポーネントルーターを動的に読み込みました。`);
+logger.info(`✅ ${client.componentHandlers.length}個のコンポーネントハンドラを動的に読み込みました。`);
 logger.info(`✅ ${client.messageHandlers.length}個のメッセージハンドラを動的に読み込みました。`);
 
 // --- イベントハンドラの読み込み ---

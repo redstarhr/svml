@@ -7,12 +7,19 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  ComponentType
+  ComponentType,
+  MessageFlags
 } = require('discord.js');
 
-const { setApproverRoles, setVisibleRoles } = require('../utils/fileStorage.js');
+const { setApproverRoles, setVisibleRoles } = require('@root/keihi_bot/utils/fileStorage.js');
+const logger = require('@common/logger');
 
-const MESSAGES = require('../../keihi_bot/constants/messages.js');
+const MESSAGES = require('@root/keihi_bot/constants/messages.js');
+
+const APPROVER_MENU_ID = 'keihi_select_approver_roles';
+const VISIBLE_MENU_ID = 'keihi_select_visible_roles';
+const SAVE_BUTTON_ID = 'keihi_config_save';
+const CANCEL_BUTTON_ID = 'keihi_config_cancel';
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -23,24 +30,24 @@ module.exports = {
   async execute(interaction) {
     try {
       const approverMenu = new RoleSelectMenuBuilder()
-        .setCustomId('select_approver_roles')  // 承認ロール選択メニューのカスタムID
+        .setCustomId(APPROVER_MENU_ID)
         .setPlaceholder('✅ 承認ロールを選択（必須）')
         .setMinValues(1)
         .setMaxValues(5);
 
       const visibleMenu = new RoleSelectMenuBuilder()
-        .setCustomId('select_visible_roles')  // 表示ロール選択メニューのカスタムID
+        .setCustomId(VISIBLE_MENU_ID)
         .setPlaceholder('👁 表示ロールを選択（任意）')
         .setMinValues(0)
         .setMaxValues(5);
 
       const actionButtons = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-          .setCustomId('config_save')
+          .setCustomId(SAVE_BUTTON_ID)
           .setLabel('設定を保存')
           .setStyle(ButtonStyle.Success),
         new ButtonBuilder()
-          .setCustomId('config_cancel')
+          .setCustomId(CANCEL_BUTTON_ID)
           .setLabel('キャンセル')
           .setStyle(ButtonStyle.Secondary)
       );
@@ -51,7 +58,7 @@ module.exports = {
       const response = await interaction.reply({
         content: MESSAGES.ROLE.PROMPT,  // メッセージのプロンプト
         components: [row1, row2, actionButtons],
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
 
       const collector = response.createMessageComponentCollector({
@@ -68,17 +75,17 @@ module.exports = {
         // ボタン/メニュー操作への応答を予約
         await i.deferUpdate();
 
-        if (i.customId === 'select_approver_roles') {
+        if (i.customId === APPROVER_MENU_ID) {
           selected.approverRoles = i.values;
         }
 
-        if (i.customId === 'select_visible_roles') {
+        if (i.customId === VISIBLE_MENU_ID) {
           selected.visibleRoles = i.values;
         }
 
-        if (i.customId === 'config_save') {
+        if (i.customId === SAVE_BUTTON_ID) {
           if (!selected.approverRoles || selected.approverRoles.length === 0) {
-            await i.followUp({ content: '⚠️ 承認ロールは最低1つ選択してください。', ephemeral: true });
+            await i.followUp({ content: '⚠️ 承認ロールは最低1つ選択してください。', flags: MessageFlags.Ephemeral });
             return;
           }
 
@@ -97,7 +104,7 @@ module.exports = {
           collector.stop('saved');
         }
 
-        if (i.customId === 'config_cancel') {
+        if (i.customId === CANCEL_BUTTON_ID) {
           await i.editReply({ content: 'ロール設定をキャンセルしました。', components: [] });
           collector.stop('cancelled');
         }
@@ -113,10 +120,10 @@ module.exports = {
       });
 
     } catch (err) {
-      console.error('❌ ロール設定エラー:', err);
-      await interaction.reply({
+      logger.error('❌ ロール設定コマンドの実行中にエラーが発生しました。', { error: err, guildId: interaction.guildId });
+      await (interaction.replied || interaction.deferred ? interaction.followUp : interaction.reply)({
         content: MESSAGES.GENERAL.ERROR,
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     }
   }

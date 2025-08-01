@@ -6,8 +6,13 @@ const {
     EmbedBuilder,
     ActionRowBuilder,
     ButtonBuilder,
-    ButtonStyle
+    ButtonStyle,
+    MessageFlags
 } = require('discord.js');
+
+const MONTHLY_BUTTON_ID = 'uriage_csv_export_monthly';
+const QUARTERLY_BUTTON_ID = 'uriage_csv_export_quarterly';
+const DAILY_BUTTON_ID = 'uriage_csv_export_daily';
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -16,8 +21,6 @@ module.exports = {
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   async execute(interaction) {
-    await interaction.deferReply();
-
     const embed = new EmbedBuilder()
         .setTitle('📊 売上報告CSV出力')
         .setDescription('出力したいデータの期間を指定するボタンを押してください。')
@@ -25,11 +28,14 @@ module.exports = {
 
     const row = new ActionRowBuilder()
         .addComponents(
-            new ButtonBuilder().setCustomId('csv_export_monthly').setLabel('月次').setStyle(ButtonStyle.Primary),
-            new ButtonBuilder().setCustomId('csv_export_quarterly').setLabel('四半期').setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId('csv_export_daily').setLabel('日次').setStyle(ButtonStyle.Secondary)
+            new ButtonBuilder().setCustomId(MONTHLY_BUTTON_ID).setLabel('月次').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId(QUARTERLY_BUTTON_ID).setLabel('四半期').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId(DAILY_BUTTON_ID).setLabel('日次').setStyle(ButtonStyle.Secondary)
         );
 
-    await interaction.editReply({ embeds: [embed], components: [row] });
+    // パネルをチャンネルに送信
+    await interaction.channel.send({ embeds: [embed], components: [row] });
+    // 実行者にエフェメラルメッセージで完了通知
+    await interaction.reply({ content: '売上報告CSV出力パネルを設置しました。', flags: MessageFlags.Ephemeral });
   },
 };

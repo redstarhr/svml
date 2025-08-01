@@ -1,69 +1,57 @@
-const { Events, MessageFlags } = require('discord.js');
 const logger = require('@common/logger');
+const path = require('node:path');
+const { Events, MessageFlags } = require('discord.js');
 
 module.exports = {
   name: Events.InteractionCreate,
-  /**
-   * すべてのインタラクションをここで受け取り、適切な処理に振り分けます。
-   * @param {import('discord.js').Interaction} interaction
-   * @param {import('discord.js').Client} client
-   */
-  async execute(interaction, client) {
-    // --- インタラクションのログ出力 ---
-    if (interaction.isButton()) {
-        logger.info(`[Interaction] ボタン受信: ${interaction.customId}`);
-    } else if (interaction.isAnySelectMenu()) {
-        logger.info(`[Interaction] セレクトメニュー受信: ${interaction.customId} (選択値: ${interaction.values.join(', ')})`);
-    } else if (interaction.isModalSubmit()) {
-        logger.info(`[Interaction] モーダル受信: ${interaction.customId}`);
-    }
-    // ------------------------------------
+  async execute(interaction) {
+    // --- スラッシュコマンドの処理 ---
+    if (interaction.isChatInputCommand()) {
+      const command = interaction.client.commands.get(interaction.commandName);
 
-    try {
-      // スラッシュコマンドの処理
-      if (interaction.isChatInputCommand()) {
-        const command = client.commands.get(interaction.commandName);
-        if (!command) {
-          logger.error(`不明なスラッシュコマンドを受信しました: ${interaction.commandName}`);
-          if (!interaction.replied && !interaction.deferred) {
-            await interaction.reply({ content: '不明なコマンドです。Botが更新された可能性があります。', ephemeral: true });
-          }
-          return;
-        }
-        await command.execute(interaction, client);
+      if (!command) {
+        logger.error(`コマンド "${interaction.commandName}" が見つかりませんでした。`);
+        await interaction.reply({ content: 'エラー: このコマンドは存在しないか、現在利用できません。', flags: MessageFlags.Ephemeral });
         return;
       }
 
-      // --- コンポーネントインタラクションの処理 ---
-      if (interaction.isMessageComponent() || interaction.isModalSubmit()) {
-        // 1. customIdによる直接的なハンドラ検索 (効率的)
-        const handler = client.componentHandlers.get(interaction.customId);
-        if (handler) {
-          await handler.execute(interaction, client);
+      try {
+        await command.execute(interaction);
+      } catch (error) {
+        logger.error(`スラッシュコマンドの実行中にエラー: ${interaction.commandName}`, {
+          error,
+          guildId: interaction.guild?.id,
+          userId: interaction.user.id,
+        });
+        const reply = { content: 'コマンドの実行中にエラーが発生しました。', flags: MessageFlags.Ephemeral };
+        await (interaction.deferred || interaction.replied ? interaction.followUp(reply) : interaction.reply(reply)).catch(e => logger.error('Error sending error message:', e));
+      }
+      return; // コマンドを処理したので、ここで終了
+    }
+
+    // --- コンポーネント (ボタン、モーダル等) の処理 ---
+    // フロー定義に従い、`index.js`で登録された `componentHandlers` をループ処理します。
+    // `levelSettingsHandler` や `keihiHandler` などがこれに該当します。
+    const componentHandlers = interaction.client.componentHandlers || [];
+    for (const handler of componentHandlers) {
+      try {
+        // ハンドラがtrueを返したら、処理済みとみなしループを抜ける
+        if (await handler.execute(interaction)) {
           return;
         }
-
-        // 2. ルーター型ハンドラによる処理 (後方互換性・汎用処理)
-        for (const router of client.componentRouters) {
-          // ハンドラは処理対象ならtrueを返す想定
-          if (await router.execute(interaction, client)) {
-            return;
-          }
-        }
-        // ここまで到達した場合、どのハンドラも処理しなかったことになる
-        logger.warn(`[Interaction] 未処理のコンポーネントインタラクション: ${interaction.customId}`);
-      }
-    } catch (error) {
-      logger.error(`インタラクション処理中にエラー (ID: ${interaction.customId || interaction.commandName})`, { error });
-      const errorMessage = { content: 'コマンドの実行中にエラーが発生しました。', ephemeral: true };
-      try {
-        if (interaction.replied || interaction.deferred) {
-          await interaction.followUp(errorMessage);
-        } else {
-          await interaction.reply(errorMessage);
-        }
-      } catch (replyError) {
-        logger.error('エラーメッセージの返信に失敗しました。', { replyError });
+      } catch (error) {
+        // index.jsのローダーで追加されたfilePathプロパティを使用
+        const handlerName = handler.filePath ? path.basename(handler.filePath) : '不明なハンドラ';
+        logger.error('コンポーネントハンドラの実行中にエラーが発生しました:', {
+          handlerName,
+          customId: interaction.customId,
+          guildId: interaction.guild?.id,
+          userId: interaction.user.id,
+          error,
+        });
+        const reply = { content: '操作の実行中にエラーが発生しました。', flags: MessageFlags.Ephemeral };
+        await (interaction.deferred || interaction.replied ? interaction.followUp(reply) : interaction.reply(reply)).catch(e => logger.error('Error sending error message:', e));
+        return;
       }
     }
   },
