@@ -1,28 +1,32 @@
 // syuttaiki_bot/components/selects/log_channel_select.js
-const { readState, writeState } = require('@root/syuttaikin_bot/utils/syuttaikinStateManager');
+const { updateState } = require('@root/syuttaikin_bot/utils/syuttaikinStateManager');
+const { updateSettingsMessage } = require('@root/syuttaikin_bot/components/settings/_updateSettingsMessage');
+const logger = require('@common/logger');
 
 module.exports = {
   customId: 'log_channel_select',
   /**
-   * Handles the selection of a log channel.
    * @param {import('discord.js').ChannelSelectMenuInteraction} interaction
    */
-  async handle(interaction) {
+  async execute(interaction) {
     const guildId = interaction.guild.id;
     const selectedChannelId = interaction.values[0];
 
-    const state = await readState(guildId);
+    try {
+      await updateState(guildId, (currentState) => {
+        currentState.syuttaikin = currentState.syuttaikin || {};
+        currentState.syuttaikin.logChannelId = selectedChannelId;
+        return currentState;
+      });
 
-    // Update the state
-    state.syuttaikin = state.syuttaikin || {};
-    state.syuttaikin.logChannelId = selectedChannelId;
-
-    await writeState(guildId, state);
-
-    const channel = await interaction.guild.channels.fetch(selectedChannelId);
-    await interaction.update({
-      content: `✅ 出退勤ログの通知チャンネルを #${channel.name} に設定しました。`,
-      components: [],
-    });
+      logger.info(`[syuttaikin-config] Guild ${guildId} の出退勤ログチャンネルを ${selectedChannelId} に設定しました。`);
+      await updateSettingsMessage(interaction); // 共通の更新関数を使用
+    } catch (error) {
+      logger.error(`[syuttaikin-config] 出退勤ログチャンネルの設定中にエラーが発生しました (Guild: ${guildId})`, { error });
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({ content: '設定の更新中にエラーが発生しました。', ephemeral: true }).catch(() => {});
+      }
+    }
+    return true;
   },
 };

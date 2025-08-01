@@ -1,4 +1,4 @@
-const { saveJsonToGCS, readJsonFromGCS } = require('../../utils/gcs');
+const { saveJsonToGCS, readJsonFromGCS } = require('@common/gcs/gcsUtils');
 
 /**
  * GCSにレベル設定を保存

@@ -1,28 +1,33 @@
 const { PermissionFlagsBits } = require('discord.js');
-const { writeNotifyLogChannel } = require('../../utils/storage'); // GCSなどへの書き込み関数例
+const { updateState } = require('@root/syuttaikin_bot/utils/syuttaikinStateManager');
+const { updateSettingsMessage } = require('@root/syuttaikin_bot/components/settings/_updateSettingsMessage');
+const logger = require('@common/logger');
 
 module.exports = {
   customId: 'notify_log_channel_select',
-  handle: async (interaction) => {
-    if (!interaction.guild) {
-      await interaction.reply({ content: 'ギルド内で実行してください。', ephemeral: true });
-      return;
-    }
-
-    const channelId = interaction.values[0];
+  /**
+   * @param {import('discord.js').ChannelSelectMenuInteraction} interaction
+   */
+  async execute(interaction) {
+    const selectedChannelId = interaction.values[0];
     const guildId = interaction.guild.id;
 
-    // 権限チェック（管理者のみなど）
-    if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
-      await interaction.reply({ content: 'この操作を行う権限がありません。', ephemeral: true });
-      return;
+    try {
+      await updateState(guildId, (currentState) => {
+        currentState.syuttaikin = currentState.syuttaikin || {};
+        currentState.syuttaikin.logChannelId = selectedChannelId;
+        return currentState;
+      });
+
+      logger.info(`[syuttaikin-config] Guild ${guildId} の通知ログチャンネルを ${selectedChannelId} に設定しました。`);
+      // 設定パネルを更新してユーザーに通知
+      await updateSettingsMessage(interaction);
+    } catch (error) {
+      logger.error(`[syuttaikin-config] 通知ログチャンネルの設定中にエラーが発生しました (Guild: ${guildId})`, { error });
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({ content: '設定の更新中にエラーが発生しました。', ephemeral: true }).catch(() => {});
+      }
     }
-
-    // ここで通知ログチャンネルIDを永続化（例としてGCSなど）
-    await writeNotifyLogChannel(guildId, channelId);
-
-    await interaction.reply({ content: `通知ログチャンネルを <#${channelId}> に設定しました。`, ephemeral: true });
-
-    // ここでEmbed更新等必要なら呼び出す
+    return true; // このハンドラで処理済み
   },
 };

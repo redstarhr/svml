@@ -2,7 +2,7 @@
 
 const keihiHandler = require('./handlers/keihiHandler.js');
 const keihisetti = require('./commands/keihi_setti.js');
-const keihicsv = require('./commands/keihicsv.js');
+const keihicsv = require('./commands/keihi_csv.js');
 const keihiconfig = require('./commands/keihi_config.js');
 const keihihelp = require('./commands/keihi_help.js');
 const keihirireki = require('./commands/keihi_rireki.js');

@@ -1,17 +1,17 @@
-const { readState, updateState } = require('@root/syuttaikin_bot/utils/syuttaikinStateManager');
+const { updateState } = require('@root/syuttaikin_bot/utils/syuttaikinStateManager');
 const { updateSettingsMessage } = require('@root/syuttaikin_bot/components/settings/_updateSettingsMessage');
 const logger = require('@common/logger');
 
 module.exports = {
-  customId: 'config_add_departure_time_modal', // This is an assumption
+  customId: 'departure_time_register_submit',
   /**
    * @param {import('discord.js').ModalSubmitInteraction} interaction
    */
   async execute(interaction) {
     const guildId = interaction.guild.id;
-    const time = interaction.fields.getTextInputValue('time_input');
+    const time = interaction.fields.getTextInputValue('departure_time_input');
 
-    if (!/^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/.test(time)) {
+    if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time)) {
       return interaction.reply({
         content: '⚠️ 時間は `HH:mm` 形式 (例: `18:00`) で入力してください。',
         ephemeral: true,
@@ -19,29 +19,34 @@ module.exports = {
     }
 
     try {
-      const currentState = await readState(guildId);
-      if (currentState.syuttaikin?.departureTimes?.includes(time)) {
-        return interaction.reply({
-          content: `⚠️ 退勤時間 \`${time}\` は既に登録されています。`,
-          ephemeral: true,
-        });
-      }
+      let updated = false;
+      await updateState(guildId, (currentState) => {
+        const config = currentState.syuttaikin || {};
+        config.departureTimes = config.departureTimes || [];
 
-      await updateState(guildId, (state) => {
-        state.syuttaikin.departureTimes.push(time);
-        state.syuttaikin.departureTimes.sort();
-        return state;
+        if (config.departureTimes.includes(time)) {
+          return currentState; // No change needed
+        }
+
+        config.departureTimes.push(time);
+        config.departureTimes.sort();
+        currentState.syuttaikin = config;
+        updated = true;
+        return currentState;
       });
 
-      logger.info(`[syuttaikin-config] Guild ${guildId} に退勤時間「${time}」を追加しました。`);
-
-      await updateSettingsMessage(interaction);
-
+      if (updated) {
+        logger.info(`[syuttaikin-config] Guild ${guildId} に退勤時間「${time}」を追加しました。`);
+        await updateSettingsMessage(interaction);
+      } else {
+        await interaction.reply({ content: `✅ 退勤時間 \`${time}\` は既に登録されています。`, ephemeral: true });
+      }
     } catch (error) {
       logger.error(`[syuttaikin-config] 退勤時間の追加処理中にエラーが発生しました (Guild: ${guildId})`, { error });
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({ content: '設定の更新中にエラーが発生しました。', ephemeral: true }).catch(() => {});
       }
     }
+    return true;
   },
 };

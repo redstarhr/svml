@@ -5,6 +5,26 @@ const { Events, MessageFlags } = require('discord.js');
 module.exports = {
   name: Events.InteractionCreate,
   async execute(interaction) {
+    // --- インタラクションのログ出力 ---
+    try {
+      const logDetails = {
+        user: `${interaction.user.tag} (${interaction.user.id})`,
+        guild: interaction.inGuild() ? `${interaction.guild.name} (${interaction.guild.id})` : 'DM',
+        channel: interaction.channel ? `${'name' in interaction.channel ? interaction.channel.name : 'N/A'} (${interaction.channel.id})` : 'N/A',
+      };
+
+      if (interaction.isCommand()) {
+        const commandName = interaction.commandName;
+        const options = interaction.options.data.map(opt => `${opt.name}:${opt.value}`).join(' ') || '(none)';
+        logger.info(`[Interaction] コマンド実行: /${commandName}`, { ...logDetails, commandName, options });
+      } else if (interaction.isButton() || interaction.isAnySelectMenu() || interaction.isModalSubmit()) {
+        const customId = interaction.customId;
+        logger.info(`[Interaction] コンポーネント操作: ${customId}`, { ...logDetails, customId });
+      }
+    } catch (error) {
+      logger.warn('[Interaction] ログ出力中に軽微なエラーが発生しました。処理は続行されます。', { error });
+    }
+
     // --- スラッシュコマンドの処理 ---
     if (interaction.isChatInputCommand()) {
       const command = interaction.client.commands.get(interaction.commandName);

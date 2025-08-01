@@ -1,130 +1,111 @@
-// keihi_config.js
-
+// keihi_bot/commands/keihi_config.js
 const {
   SlashCommandBuilder,
   PermissionFlagsBits,
   RoleSelectMenuBuilder,
+  ChannelSelectMenuBuilder,
   ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  ComponentType,
-  MessageFlags
+  ChannelType,
+  EmbedBuilder,
 } = require('discord.js');
 
-const { setApproverRoles, setVisibleRoles } = require('@root/keihi_bot/utils/fileStorage.js');
+const { updateState, readState } = require('../utils/keihiStateManager.js');
 const logger = require('@common/logger');
-
 const MESSAGES = require('@root/keihi_bot/constants/messages.js');
-
-const APPROVER_MENU_ID = 'keihi_select_approver_roles';
-const VISIBLE_MENU_ID = 'keihi_select_visible_roles';
-const SAVE_BUTTON_ID = 'keihi_config_save';
-const CANCEL_BUTTON_ID = 'keihi_config_cancel';
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('keihi_config')
-    .setDescription('承認・表示ロールを設定します')
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),  // 管理者権限を必要とする
+    .setDescription('経費Botの各種設定を行います。')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName('role')
+        .setDescription('承認ロールと閲覧ロールを設定します。')
+    )
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName('channel')
+        .setDescription('申請通知を送信するチャンネルを設定します。')
+    )
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName('show')
+        .setDescription('現在の設定内容を表示します。')
+    ),
 
   async execute(interaction) {
+    const subcommand = interaction.options.getSubcommand();
+
     try {
-      const approverMenu = new RoleSelectMenuBuilder()
-        .setCustomId(APPROVER_MENU_ID)
-        .setPlaceholder('✅ 承認ロールを選択（必須）')
-        .setMinValues(1)
-        .setMaxValues(5);
+      await interaction.deferReply({ ephemeral: true });
 
-      const visibleMenu = new RoleSelectMenuBuilder()
-        .setCustomId(VISIBLE_MENU_ID)
-        .setPlaceholder('👁 表示ロールを選択（任意）')
-        .setMinValues(0)
-        .setMaxValues(5);
-
-      const actionButtons = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId(SAVE_BUTTON_ID)
-          .setLabel('設定を保存')
-          .setStyle(ButtonStyle.Success),
-        new ButtonBuilder()
-          .setCustomId(CANCEL_BUTTON_ID)
-          .setLabel('キャンセル')
-          .setStyle(ButtonStyle.Secondary)
-      );
-
-      const row1 = new ActionRowBuilder().addComponents(approverMenu);
-      const row2 = new ActionRowBuilder().addComponents(visibleMenu);
-
-      const response = await interaction.reply({
-        content: MESSAGES.ROLE.PROMPT,  // メッセージのプロンプト
-        components: [row1, row2, actionButtons],
-        flags: MessageFlags.Ephemeral
-      });
-
-      const collector = response.createMessageComponentCollector({
-        filter: i => i.user.id === interaction.user.id,  // インタラクションしたユーザーに限定
-        time: 120_000, // 2分間
-      });
-
-      const selected = {
-        approverRoles: null,
-        visibleRoles: [], // デフォルトは空配列
-      };
-
-      collector.on('collect', async i => {
-        // ボタン/メニュー操作への応答を予約
-        await i.deferUpdate();
-
-        if (i.customId === APPROVER_MENU_ID) {
-          selected.approverRoles = i.values;
-        }
-
-        if (i.customId === VISIBLE_MENU_ID) {
-          selected.visibleRoles = i.values;
-        }
-
-        if (i.customId === SAVE_BUTTON_ID) {
-          if (!selected.approverRoles || selected.approverRoles.length === 0) {
-            await i.followUp({ content: '⚠️ 承認ロールは最低1つ選択してください。', flags: MessageFlags.Ephemeral });
-            return;
-          }
-
-          await setApproverRoles(interaction.guildId, selected.approverRoles);
-          await setVisibleRoles(interaction.guildId, selected.visibleRoles);
-
-          const roleMentions = selected.approverRoles.map(id => `<@&${id}>`).join(', ');
-          const visibleMentions = selected.visibleRoles.length > 0
-            ? selected.visibleRoles.map(id => `<@&${id}>`).join(', ')
-            : '（なし）';
-
-          await i.editReply({
-            content: `${MESSAGES.ROLE.SET(roleMentions)}\n👁 表示ロール: ${visibleMentions}`,
-            components: []  // コンポーネント削除
-          });
-          collector.stop('saved');
-        }
-
-        if (i.customId === CANCEL_BUTTON_ID) {
-          await i.editReply({ content: 'ロール設定をキャンセルしました。', components: [] });
-          collector.stop('cancelled');
-        }
-      });
-
-      collector.on('end', async (collected, reason) => {
-        if (reason !== 'saved' && reason !== 'cancelled') {
-          await interaction.editReply({
-            content: MESSAGES.ROLE.TIMEOUT,
-            components: []
-          }).catch(() => {}); // タイムアウト後にメッセージが消されていてもエラーを出さない
-        }
-      });
-
-    } catch (err) {
-      logger.error('❌ ロール設定コマンドの実行中にエラーが発生しました。', { error: err, guildId: interaction.guildId });
-      await (interaction.replied || interaction.deferred ? interaction.followUp : interaction.reply)({
-        content: MESSAGES.GENERAL.ERROR,
-        flags: MessageFlags.Ephemeral
-      });
+      if (subcommand === 'role') {
+        await handleRoleConfig(interaction);
+      } else if (subcommand === 'channel') {
+        await handleChannelConfig(interaction);
+      } else if (subcommand === 'show') {
+        await handleShowConfig(interaction);
+      }
+    } catch (error) {
+      logger.error('❌ keihi_config コマンドの実行中にエラーが発生しました。', { error, guildId: interaction.guildId, subcommand });
+      await interaction.editReply({ content: MESSAGES.GENERAL.ERROR });
     }
   }
 };
+
+async function handleRoleConfig(interaction) {
+  const currentState = await readState(interaction.guildId);
+  const approverMenu = new RoleSelectMenuBuilder()
+    .setCustomId('keihi_config_approver_roles')
+    .setPlaceholder('✅ 承認ロールを選択（複数可）')
+    .setMinValues(0)
+    .setMaxValues(10)
+    .setDefaultRoles(currentState.approverRoles);
+
+  const visibleMenu = new RoleSelectMenuBuilder()
+    .setCustomId('keihi_config_visible_roles')
+    .setPlaceholder('👁 履歴閲覧ロールを選択（複数可）')
+    .setMinValues(0)
+    .setMaxValues(10)
+    .setDefaultRoles(currentState.visibleRoles);
+
+  await interaction.editReply({
+    content: '経費申請を承認できるロールと、履歴を閲覧できるロールを設定してください。',
+    components: [new ActionRowBuilder().addComponents(approverMenu), new ActionRowBuilder().addComponents(visibleMenu)],
+  });
+}
+
+async function handleChannelConfig(interaction) {
+  const currentState = await readState(interaction.guildId);
+  const logChannelMenu = new ChannelSelectMenuBuilder()
+    .setCustomId('keihi_config_log_channel')
+    .setPlaceholder('📜 申請通知チャンネルを選択')
+    .addChannelTypes(ChannelType.GuildText)
+    .setMinValues(0)
+    .setMaxValues(1)
+    .setDefaultChannels(currentState.logChannelId ? [currentState.logChannelId] : []);
+
+  await interaction.editReply({
+    content: '経費申請が提出された際に通知を送信するチャンネルを設定してください。',
+    components: [new ActionRowBuilder().addComponents(logChannelMenu)],
+  });
+}
+
+async function handleShowConfig(interaction) {
+  const state = await readState(interaction.guildId);
+  const approverRoles = state.approverRoles.map(id => `<@&${id}>`).join(', ') || '未設定';
+  const visibleRoles = state.visibleRoles.map(id => `<@&${id}>`).join(', ') || '未設定';
+  const logChannel = state.logChannelId ? `<#${state.logChannelId}>` : '未設定';
+
+  const embed = new EmbedBuilder()
+    .setTitle('⚙️ 経費Bot 現在の設定')
+    .addFields(
+      { name: '承認ロール', value: approverRoles },
+      { name: '閲覧ロール', value: visibleRoles },
+      { name: '申請通知チャンネル', value: logChannel }
+    )
+    .setColor(0x3498DB);
+
+  await interaction.editReply({ embeds: [embed] });
+}

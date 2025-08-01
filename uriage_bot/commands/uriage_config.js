@@ -8,58 +8,37 @@ const {
     EmbedBuilder,
     MessageFlags,
 } = require('discord.js');
-const { readJsonFromGCS } = require('@common/gcs/gcsUtils');
+const { updateState, readState } = require('../utils/uriageStateManager');
 const logger = require('@common/logger');
-
-const SETTINGS_FILE_PATH = (guildId) => `${guildId}/uriage/config.json`;
-const APPROVAL_ROLES_MENU_ID = 'uriage_select_approval_roles';
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('売上報告設定')
         .setDescription('売上報告を承認できるロールを設定します。')
-        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('set')
+                .setDescription('承認ロールを設定します。')
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('show')
+                .setDescription('現在の設定内容を表示します。')
+        ),
+
     async execute(interaction) {
-        // GCSからの読み込みに時間がかかる可能性があるため、先に応答を保留します
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        const subcommand = interaction.options.getSubcommand();
 
         try {
-            const guildId = interaction.guildId;
-            const settingsPath = SETTINGS_FILE_PATH(guildId);
-            const currentSettings = await readJsonFromGCS(settingsPath) || {};
-            const currentRoleIds = currentSettings.approvalRoleIds || [];
-
-            const embed = new EmbedBuilder()
-                .setTitle('⚙️ 売上報告 承認ロール設定')
-                .setDescription('売上報告を承認できるロールを選択してください。\n複数選択が可能です。')
-                .setColor(0x5865F2);
-
-            if (currentRoleIds.length > 0) {
-                const roleMentions = currentRoleIds.map(id => `<@&${id}>`).join(', ');
-                embed.addFields({ name: '現在設定中のロール', value: roleMentions });
-            } else {
-                embed.addFields({ name: '現在設定中のロール', value: '未設定' });
+            if (subcommand === 'set') {
+                await handleSet(interaction);
+            } else if (subcommand === 'show') {
+                await handleShow(interaction);
             }
-
-            const selectMenu = new RoleSelectMenuBuilder()
-                .setCustomId(APPROVAL_ROLES_MENU_ID)
-                .setPlaceholder('承認ロールを選択...')
-                .setMinValues(0) // 0個選択（全解除）を許可
-                .setMaxValues(10); // 最大10個まで選択可能
-
-            // 現在の設定をデフォルト値としてセット
-            if (currentRoleIds.length > 0) {
-                selectMenu.setDefaultRoles(currentRoleIds);
-            }
-
-            const row = new ActionRowBuilder().addComponents(selectMenu);
-
-            await interaction.editReply({
-                embeds: [embed],
-                components: [row],
-            });
         } catch (error) {
-            logger.error('承認ロール設定の表示中にエラーが発生しました。', { guildId: interaction.guildId, error });
+            logger.error('売上報告設定コマンドの実行中にエラーが発生しました。', { guildId: interaction.guildId, error });
             await interaction.editReply({
                 content: '設定の読み込み中にエラーが発生しました。しばらくしてからもう一度お試しください。',
                 embeds: [], components: []
@@ -67,3 +46,30 @@ module.exports = {
         }
     },
 };
+
+async function handleSet(interaction) {
+    const currentSettings = await readState(interaction.guildId);
+    const selectMenu = new RoleSelectMenuBuilder()
+        .setCustomId('uriage_select_approval_roles')
+        .setPlaceholder('承認ロールを選択（複数可）')
+        .setMinValues(0)
+        .setMaxValues(10)
+        .setDefaultRoles(currentSettings.approvalRoleIds);
+
+    await interaction.editReply({
+        content: '売上報告を承認できるロールを設定してください。',
+        components: [new ActionRowBuilder().addComponents(selectMenu)],
+    });
+}
+
+async function handleShow(interaction) {
+    const state = await readState(interaction.guildId);
+    const approvalRoles = state.approvalRoleIds.map(id => `<@&${id}>`).join(', ') || '未設定';
+
+    const embed = new EmbedBuilder()
+        .setTitle('⚙️ 売上報告 現在の設定')
+        .addFields({ name: '承認ロール', value: approvalRoles })
+        .setColor(0x3498DB);
+
+    await interaction.editReply({ embeds: [embed] });
+}

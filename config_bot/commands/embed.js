@@ -8,8 +8,8 @@ const {
   MessageFlags,
 } = require('discord.js');
 
-const NEW_BUTTON = 'embed_builder_new';
-const EDIT_BUTTON = 'embed_builder_edit';
+const NEW_BUTTON_ID = 'embed_builder_new';
+const EDIT_BUTTON_ID = 'embed_builder_edit';
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -25,11 +25,11 @@ module.exports = {
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setCustomId(NEW_BUTTON)
+        .setCustomId(NEW_BUTTON_ID)
         .setLabel('新規作成')
         .setStyle(ButtonStyle.Primary),
       new ButtonBuilder()
-        .setCustomId(EDIT_BUTTON)
+        .setCustomId(EDIT_BUTTON_ID)
         .setLabel('編集')
         .setStyle(ButtonStyle.Secondary)
     );

@@ -1,32 +1,32 @@
-const { ensureCastShiftSettingJSON, readJSON, writeJSON } = require('../../utils/fileHelper');
-const { safeReply } = require('../../../utils/safeReply');
+const { updateState } = require('@root/syuttaikin_bot/utils/syuttaikinStateManager');
+const { updateSettingsMessage } = require('@root/syuttaikin_bot/components/settings/_updateSettingsMessage');
+const logger = require('@common/logger');
 
 module.exports = {
   customId: 'set_notify_log_channel_select',
-  handle: async (interaction) => {
-    const guild = interaction.guild;
+  /**
+   * @param {import('discord.js').ChannelSelectMenuInteraction} interaction
+   */
+  async execute(interaction) {
     const selectedChannelId = interaction.values[0];
+    const guildId = interaction.guild.id;
 
     try {
-      // 設定ファイルの読み込みと更新
-      const filePath = await ensureCastShiftSettingJSON(guild.id);
-      const data = await readJSON(filePath);
-
-      data.notifyLogChannelId = selectedChannelId;
-
-      await writeJSON(filePath, data);
-
-      // 成功メッセージを返信
-      await safeReply(interaction, {
-        content: `✅ 通知ログチャンネルが <#${selectedChannelId}> に設定されました。`,
-        ephemeral: true,
+      await updateState(guildId, (currentState) => {
+        currentState.syuttaikin = currentState.syuttaikin || {};
+        // Assuming 'notifyLogChannelId' is the correct key for this setting
+        currentState.syuttaikin.notifyLogChannelId = selectedChannelId;
+        return currentState;
       });
-    } catch (err) {
-      console.error('通知ログチャンネル設定エラー:', err);
-      await safeReply(interaction, {
-        content: '⚠️ 通知ログチャンネルの設定中にエラーが発生しました。',
-        ephemeral: true,
-      });
+
+      logger.info(`[syuttaikin-config] Guild ${guildId} の通知ログチャンネルを ${selectedChannelId} に設定しました。`);
+      await updateSettingsMessage(interaction);
+    } catch (error) {
+      logger.error(`[syuttaikin-config] 通知ログチャンネルの設定中にエラーが発生しました (Guild: ${guildId})`, { error });
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({ content: '設定の更新中にエラーが発生しました。', ephemeral: true }).catch(() => {});
+      }
     }
+    return true;
   },
 };

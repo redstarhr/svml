@@ -24,10 +24,16 @@ if (process.env.NODE_ENV === 'development' && !process.env.GUILD_ID) {
 
 logger.info(`Google認証情報を使用中: ${process.env.GOOGLE_APPLICATION_CREDENTIALS}`);
 
-// プロジェクトルートにある `_bot` で終わるディレクトリを自動的に探索
-// `syuttaikin` のように `_bot` で終わらないディレクトリも対象に含める
+// プロジェクトルートにあるディレクトリを機能モジュールとして自動的に探索
+// 'common', 'events' などの共通ディレクトリや '.' で始まるディレクトリは除外
 const featureDirs = fs.readdirSync(__dirname, { withFileTypes: true })
-  .filter(dirent => dirent.isDirectory() && (dirent.name.endsWith('_bot') || dirent.name === 'syuttaikin'))
+  .filter(dirent => {
+    if (!dirent.isDirectory()) return false;
+    const excludedDirs = ['common', 'events', 'node_modules'];
+    if (excludedDirs.includes(dirent.name) || dirent.name.startsWith('.')) return false;
+    // ディレクトリ内に 'index.js' が存在するかどうかで判断
+    return fs.existsSync(path.join(__dirname, dirent.name, 'index.js'));
+  })
   .map(dirent => dirent.name);
 
 logger.info(`🔍 ${featureDirs.length}個の機能ディレクトリを検出: ${featureDirs.join(', ')}`);

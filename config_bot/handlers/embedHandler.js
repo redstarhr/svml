@@ -1,3 +1,5 @@
+// config_bot/handlers/embedHandler.js
+
 const {
   ModalBuilder,
   TextInputBuilder,
@@ -7,6 +9,8 @@ const {
   MessageFlags,
   ButtonBuilder,
   ButtonStyle,
+  ChannelSelectMenuBuilder,
+  ChannelType,
 } = require('discord.js');
 const logger = require('@common/logger');
 
@@ -49,6 +53,9 @@ const ADD_FIELD_MODAL_ID = 'embed_add_field_modal';
 const FIELD_NAME_ID = 'embed_field_name';
 const FIELD_VALUE_ID = 'embed_field_value';
 
+// チャンネル選択
+const SEND_CHANNEL_SELECT_ID = 'embed_send_channel_select';
+
 module.exports = {
   async execute(interaction) {
     if (interaction.isButton()) {
@@ -57,119 +64,103 @@ module.exports = {
     if (interaction.isModalSubmit()) {
       return this.handleModal(interaction);
     }
+    if (interaction.isChannelSelectMenu()) {
+      if (interaction.customId === SEND_CHANNEL_SELECT_ID) {
+        return this.handleSendChannelSelect(interaction);
+      }
+    }
     return false;
   },
 
   async handleButton(interaction) {
     const { customId } = interaction;
-
-    if (customId === NEW_BUTTON_ID) {
-      await this.showBuilderInterface(interaction);
-      return true;
+    switch (customId) {
+      case NEW_BUTTON_ID:
+        await this.showBuilderInterface(interaction);
+        return true;
+      case EDIT_BUTTON_ID:
+        await interaction.update({ content: 'この機能は現在開発中です。', embeds: [], components: [] });
+        return true;
+      case SET_TITLE_ID:
+        await this.showTitleModal(interaction);
+        return true;
+      case SET_DESCRIPTION_ID:
+        await this.showDescriptionModal(interaction);
+        return true;
+      case SET_URL_ID:
+        await this.showUrlModal(interaction);
+        return true;
+      case SET_COLOR_ID:
+        await this.showColorModal(interaction);
+        return true;
+      case SET_FOOTER_ID:
+        await this.showFooterModal(interaction);
+        return true;
+      case SET_IMAGE_ID:
+        await this.showImageModal(interaction);
+        return true;
+      case SET_THUMBNAIL_ID:
+        await this.showThumbnailModal(interaction);
+        return true;
+      case ADD_FIELD_ID:
+        await this.showAddFieldModal(interaction);
+        return true;
+      case SEND_ID:
+        await this.handleSend(interaction);
+        return true;
+      case DISCARD_ID:
+        await this.handleDiscard(interaction);
+        return true;
+      // 未実装のボタンに対する応答
+      case SAVE_ID:
+      case EDIT_FIELD_ID:
+      case REMOVE_FIELD_ID:
+        await interaction.reply({
+          content: 'この機能は現在開発中です。',
+          ephemeral: true,
+        });
+        return true;
+      default:
+        return false;
     }
-
-    if (customId === EDIT_BUTTON_ID) {
-      await interaction.update({ content: 'この機能は現在開発中です。', embeds: [], components: [] });
-      return true;
-    }
-
-    if (customId === SET_TITLE_ID) {
-      await this.showTitleModal(interaction);
-      return true;
-    }
-
-    if (customId === SET_DESCRIPTION_ID) {
-      await this.showDescriptionModal(interaction);
-      return true;
-    }
-
-    if (customId === SET_URL_ID) {
-      await this.showUrlModal(interaction);
-      return true;
-    }
-
-    if (customId === SET_COLOR_ID) {
-      await this.showColorModal(interaction);
-      return true;
-    }
-
-    if (customId === SET_FOOTER_ID) {
-      await this.showFooterModal(interaction);
-      return true;
-    }
-
-    if (customId === SET_IMAGE_ID) {
-      await this.showImageModal(interaction);
-      return true;
-    }
-
-    if (customId === SET_THUMBNAIL_ID) {
-      await this.showThumbnailModal(interaction);
-      return true;
-    }
-
-    if (customId === ADD_FIELD_ID) {
-      await this.showAddFieldModal(interaction);
-      return true;
-    }
-
-    return false;
   },
 
   async handleModal(interaction) {
     const { customId } = interaction;
-
-    if (customId === TITLE_MODAL_ID) {
-      await this.handleTitleModalSubmit(interaction);
-      return true;
+    switch (customId) {
+      case TITLE_MODAL_ID:
+        await this.handleTitleModalSubmit(interaction);
+        return true;
+      case DESCRIPTION_MODAL_ID:
+        await this.handleDescriptionModalSubmit(interaction);
+        return true;
+      case URL_MODAL_ID:
+        await this.handleUrlModalSubmit(interaction);
+        return true;
+      case COLOR_MODAL_ID:
+        await this.handleColorModalSubmit(interaction);
+        return true;
+      case FOOTER_MODAL_ID:
+        await this.handleFooterModalSubmit(interaction);
+        return true;
+      case IMAGE_MODAL_ID:
+        await this.handleImageModalSubmit(interaction);
+        return true;
+      case THUMBNAIL_MODAL_ID:
+        await this.handleThumbnailModalSubmit(interaction);
+        return true;
+      case ADD_FIELD_MODAL_ID:
+        await this.handleAddFieldModalSubmit(interaction);
+        return true;
+      default:
+        // どのモーダルにも一致しなかった場合
+        logger.warn(`[EmbedHandler] 未知のモーダルIDを処理できませんでした: ${customId}`);
+        await interaction.reply({
+          content: '不明な操作です。',
+          ephemeral: true,
+        });
+        return true; // エラーとして処理済み
     }
-
-    if (customId === DESCRIPTION_MODAL_ID) {
-      await this.handleDescriptionModalSubmit(interaction);
-      return true;
-    }
-
-    if (customId === URL_MODAL_ID) {
-      await this.handleUrlModalSubmit(interaction);
-      return true;
-    }
-
-    if (customId === COLOR_MODAL_ID) {
-      await this.handleColorModalSubmit(interaction);
-      return true;
-    }
-
-    if (customId === FOOTER_MODAL_ID) {
-      await this.handleFooterModalSubmit(interaction);
-      return true;
-    }
-
-    if (customId === IMAGE_MODAL_ID) {
-      await this.handleImageModalSubmit(interaction);
-      return true;
-    }
-
-    if (customId === THUMBNAIL_MODAL_ID) {
-      await this.handleThumbnailModalSubmit(interaction);
-      return true;
-    }
-
-    if (customId === ADD_FIELD_MODAL_ID) {
-      await this.handleAddFieldModalSubmit(interaction);
-      return true;
-    }
-
-    if (customId === SEND_ID) {
-      await this.handleSend(interaction);
-      return true;
-    }
-
-    if (customId === DISCARD_ID) {
-      await this.handleDiscard(interaction);
-      return true;
-    }
-
-    return false;
   },
 
   /**
@@ -530,32 +521,78 @@ module.exports = {
   },
 
   /**
-   * [送信]ボタンの処理。作成したEmbedをチャンネルに投稿します。
+   * [送信]ボタンの処理。送信先のチャンネルを選択させます。
    * @param {import('discord.js').ButtonInteraction} interaction
    */
   async handleSend(interaction) {
+    const selectMenu = new ChannelSelectMenuBuilder()
+      .setCustomId(SEND_CHANNEL_SELECT_ID)
+      .setPlaceholder('Embedを送信するチャンネルを選択してください')
+      .addChannelTypes(ChannelType.GuildText, ChannelType.GuildForum);
+
+    const row = new ActionRowBuilder().addComponents(selectMenu);
+
+    // メッセージを更新してチャンネル選択メニューを表示します。
+    // Embedプレビューはそのまま保持します。
+    await interaction.update({
+      content: '送信先のチャンネルを選択してください。',
+      components: [row],
+    });
+  },
+
+  /**
+   * 送信先チャンネルが選択されたときの処理
+   * @param {import('discord.js').ChannelSelectMenuInteraction} interaction
+   */
+  async handleSendChannelSelect(interaction) {
+    const channelId = interaction.values[0];
+    const channel = await interaction.guild.channels.fetch(channelId).catch(() => null);
+
+    if (!channel || (!channel.isTextBased() && channel.type !== ChannelType.GuildForum)) {
+      return interaction.update({
+        content: '⚠️ 無効なチャンネルが選択されました。テキストチャンネルまたはフォーラムチャンネルを選択してください。',
+        embeds: [],
+        components: [],
+      });
+    }
+
+    // チャンネル選択メニューがあったメッセージからEmbedデータを取得
     const previewEmbed = EmbedBuilder.from(interaction.message.embeds[0]);
 
-    // プレビュー用のテキストを削除
+    // 送信用にプレビュー用テキストを削除
     if (previewEmbed.data.title?.endsWith(' (プレビュー)')) {
       previewEmbed.setTitle(previewEmbed.data.title.replace(' (プレビュー)', ''));
     }
     if (previewEmbed.data.description?.includes('*ここにプレビューが表示されます*')) {
       previewEmbed.setDescription(null);
     }
+    if (previewEmbed.data.title === 'Embedプレビュー' && !previewEmbed.data.description && !previewEmbed.data.fields?.length) {
+      previewEmbed.setTitle(null);
+    }
 
     try {
-      await interaction.channel.send({ embeds: [previewEmbed] });
+      if (channel.type === ChannelType.GuildForum) {
+        // フォーラムチャンネルの場合、新しい投稿を作成
+        await channel.threads.create({
+          name: previewEmbed.data.title || '新しい投稿',
+          message: { embeds: [previewEmbed] },
+        });
+      } else {
+        // テキストチャンネルの場合、メッセージを送信
+        await channel.send({ embeds: [previewEmbed] });
+      }
+
       await interaction.update({
-        content: '✅ Embedを送信しました。',
+        content: `✅ Embedを <#${channel.id}> に送信しました。`,
         embeds: [],
         components: [],
       });
     } catch (error) {
       logger.error('Embedの送信中にエラーが発生しました。', { error, guildId: interaction.guildId });
-      await interaction.followUp({
-        content: '❌ Embedの送信中にエラーが発生しました。Botにチャンネルへの送信権限があるか確認してください。',
-        flags: MessageFlags.Ephemeral,
+      await interaction.update({
+        content: `❌ <#${channel.id}> へのEmbed送信中にエラーが発生しました。Botにチャンネルへの送信/投稿権限があるか確認してください。`,
+        embeds: [],
+        components: [],
       });
     }
   },

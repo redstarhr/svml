@@ -1,5 +1,5 @@
 // syuttaikin_bot/commands/cast-departure-panel.js
-const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { readState } = require('../utils/syuttaikinStateManager');
 const logger = require('@common/logger');
 
@@ -10,15 +10,20 @@ module.exports = {
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   async execute(interaction) {
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
-    const guildId = interaction.guildId;
     try {
-      const state = await readState(guildId);
-      const departureTimes = state.syuttaikin?.departureTimes || [];
+      await interaction.deferReply({ ephemeral: true });
 
-      if (departureTimes.length === 0) {
-        await interaction.editReply('退勤時間が設定されていません。`/キャスト出退勤設定`で先に退勤時間を登録してください。');
+      const guildId = interaction.guildId;
+      const state = await readState(guildId);
+      const departureTimes = state?.syuttaikin?.departureTimes || [];
+
+      if (!departureTimes.length) {
+        await interaction.editReply('⚠️ 退勤時間が設定されていません。`/キャスト出退勤設定`で先に退勤時間を登録してください。');
+        return;
+      }
+
+      if (!interaction.channel) {
+        await interaction.editReply('❌ チャンネル情報が取得できません。');
         return;
       }
 
@@ -27,26 +32,36 @@ module.exports = {
         .setDescription('該当する退勤時間のボタンを押してください。')
         .setColor(0xE74C3C);
 
-      // Create buttons for each departure time, up to 5 per row
       const rows = [];
-      const sortedTimes = [...departureTimes].sort(); // Sort times for consistent order
+      const sortedTimes = [...departureTimes].sort();
 
       for (let i = 0; i < sortedTimes.length; i += 5) {
         const row = new ActionRowBuilder();
         const chunk = sortedTimes.slice(i, i + 5);
-        for (const time of chunk) {
+        chunk.forEach(time => {
           row.addComponents(
-            new ButtonBuilder().setCustomId(`departure_time_${time}`).setLabel(time).setStyle(ButtonStyle.Danger)
+            new ButtonBuilder()
+              .setCustomId(`departure_time_${time}`)
+              .setLabel(time)
+              .setStyle(ButtonStyle.Danger)
           );
-        }
+        });
         rows.push(row);
       }
 
       await interaction.channel.send({ embeds: [embed], components: rows });
       await interaction.editReply('✅ 退勤パネルを設置しました。');
+      logger.info(`[syuttaikin] Guild:${guildId} で退勤パネルを設置しました。`);
+
     } catch (error) {
-      logger.error('退勤パネルの設置中にエラーが発生しました。', { guildId, error });
-      await interaction.editReply('パネルの設置中にエラーが発生しました。');
+      logger.error(`[syuttaikin] Guild:${interaction.guildId} 退勤パネル設置中にエラー`, { error });
+      try {
+        if (interaction.deferred || interaction.replied) {
+          await interaction.editReply('❌ パネルの設置中にエラーが発生しました。');
+        } else {
+          await interaction.reply({ content: '❌ パネルの設置中にエラーが発生しました。', ephemeral: true });
+        }
+      } catch {}
     }
   },
 };
